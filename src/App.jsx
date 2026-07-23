@@ -9,13 +9,15 @@ function App() {
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false };
-  const defaultStatus = { text: '', color: 'transparent', borders: 0 };
-  const defaultWall = { color: '#E8F8F5', borders: 0 };
+  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, visible: true };
+  const defaultStatus = { text: '', color: 'transparent', borders: 0, visible: true };
+  const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
+  const defaultArr = Array(10).fill(null).map(() => ({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }));
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
   const [wallState, setWallState] = useState(defaultWall);
+  const [arrState, setArrState] = useState(defaultArr);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -41,6 +43,7 @@ function App() {
     setBoxState({ ...defaultBox });
     setStatusState({ ...defaultStatus });
     setWallState({ ...defaultWall });
+    setArrState(defaultArr.map(item => ({ ...item })));
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -59,10 +62,11 @@ function App() {
       declare var box: {
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean; visible: boolean;
       };
-      declare var wall: { color: string; borders: number; };
-      declare var status: { text: string; color: string; borders: number; };
+      declare var wall: { color: string; borders: number; visible: boolean; };
+      declare var status: { text: string; color: string; borders: number; visible: boolean; };
+      declare var arr: { color: string; visible: boolean; width: number; height: number; x: number; y: number; }[] & { amount: number };
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
       declare function setTimeout(callback: Function, ms: number): number;
@@ -146,6 +150,58 @@ function App() {
           return true;
         }
       });
+
+      const createInnerProxy = (item, index) => new Proxy({ ...item }, {
+        set: (t, p, v) => {
+          if (!['color', 'visible', 'width', 'height', 'x', 'y'].includes(p)) throw new Error(`Oops! arr items only have 'color', 'visible', 'width', 'height', 'x', and 'y' properties`);
+          t[p] = v;
+          setArrState(prevArr => {
+            const newArr = [...prevArr];
+            newArr[index] = { ...t };
+            return newArr;
+          });
+          
+          if (scenario.checkWin(userBox, { ...scenario.environment }, logs, statusState, wallState)) {
+            setShowConfetti(true);
+          }
+          return true;
+        }
+      });
+
+      const innerProxies = arrState.map(createInnerProxy);
+      
+      const userArr = new Proxy(innerProxies, {
+        set: (target, prop, value) => {
+          if (prop === 'amount') {
+            const amount = Math.min(Math.max(0, Number(value)), 400); // limit 400 squares max
+            const newArr = Array(amount).fill(0).map((_, i) => arrState[i] || { color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 });
+            
+            // Synchronously update the proxy's target so subsequent code in the same block works!
+            target.length = amount;
+            for (let i = 0; i < amount; i++) {
+              if (!target[i]) {
+                target[i] = createInnerProxy({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }, i);
+              }
+            }
+            
+            setArrState(newArr);
+            return true;
+          }
+          throw new Error(`Oops! You can only change arr.amount, arr[i].color, or arr[i].visible`);
+        },
+        get: (target, prop) => {
+          if (prop === 'amount') return arrState.length;
+          
+          if (typeof prop === 'string' && !isNaN(prop) && prop.trim() !== '') {
+            const index = Number(prop);
+            if (index >= target.length || index < 0) {
+              throw new Error(`Oops! You tried to access arr[${index}], but that box doesn't exist yet. Try adding 'arr.amount = ${index + 1};' first!`);
+            }
+          }
+          
+          return target[prop];
+        }
+      });
       
       const fakeConsole = {
         log: (...args) => {
@@ -187,15 +243,15 @@ function App() {
       };
       
       // We create a safe execution context using 'with' to allow variable shadowing
-      // The function expects parameters: box, status, wall, console, env
-      const executeCode = new Function('box', 'status', 'wall', 'console', 'env', `
+      // The function expects parameters: box, status, wall, arr, console, env
+      const executeCode = new Function('box', 'status', 'wall', 'arr', 'console', 'env', `
         with (env) {
           ${code}
         }
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userStatus, userWall, fakeConsole, env);
+      executeCode(userBox, userStatus, userWall, userArr, fakeConsole, env);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -343,7 +399,7 @@ function App() {
             <div 
               className="canvas-area"
               style={{
-                backgroundColor: wallState.color,
+                backgroundColor: wallState.visible !== false ? wallState.color : 'transparent',
                 border: wallState.borders ? `${wallState.borders}px solid #2D3436` : 'none',
                 boxSizing: 'border-box'
               }}
@@ -356,17 +412,14 @@ function App() {
                 </div>
               )}
               
-              <div className="environment-info">
-                {scenario.environment.isRaining && <><CloudRain color="#0984E3" /> It is Raining!</>}
-                {scenario.environment.isSunny && <><Sun color="#FDBC04" fill="#FDBC04" /> It is Sunny!</>}
-                {scenario.environment.isNight && <><Moon color="#2d3436" fill="#2d3436" /> It is Night!</>}
-              </div>
+
 
               <div 
                 className="status-banner"
                 style={{
+                  display: statusState.visible !== false ? 'block' : 'none',
                   position: 'absolute',
-                  bottom: '20px',
+                  top: '20px',
                   left: '50%',
                   transform: 'translateX(-50%)',
                   backgroundColor: statusState.color,
@@ -388,6 +441,7 @@ function App() {
               <div 
                 className="magic-box"
                 style={{
+                  display: boxState.visible !== false ? 'block' : 'none',
                   backgroundColor: boxState.color,
                   width: `${boxState.width}px`,
                   height: `${boxState.height}px`,
@@ -412,6 +466,24 @@ function App() {
                   {boxState.smile && <div className="smile"></div>}
                 </div>
               </div>
+
+              {arrState.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '80%', zIndex: 0 }}>
+                  {arrState.map((b, i) => (
+                    <div 
+                      key={`arr-${i}`}
+                      style={{
+                        visibility: b.visible !== false ? 'visible' : 'hidden',
+                        backgroundColor: b.color,
+                        width: `${b.width !== undefined ? b.width : 30}px`,
+                        height: `${b.height !== undefined ? b.height : 30}px`,
+                        transform: `translate(${b.x || 0}px, ${b.y || 0}px)`,
+                        borderRadius: '4px'
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Text Console */}
