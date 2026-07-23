@@ -1,2 +1,2 @@
-node server.js
+npm run dev
 taskkill /F /IM node.exe
