@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Sparkles, CloudRain, Sun, RotateCcw, ChevronLeft, ChevronRight, Gamepad2, Moon, Save, FolderOpen } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
 
@@ -45,18 +46,25 @@ function App() {
     intervalsRef.current = [];
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
-      const newCode = code.substring(0, start) + '  ' + code.substring(end);
-      setCode(newCode);
-      // Move cursor right after the 2 spaces
-      setTimeout(() => {
-        e.target.selectionStart = e.target.selectionEnd = start + 2;
-      }, 0);
-    }
+  const handleEditorWillMount = (monaco) => {
+    // Provide TypeScript definitions so the editor perfectly autocompletes our Magic World objects!
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true, // Don't complain about top-level await or missing variables
+      noSyntaxValidation: false,
+    });
+    
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(`
+      declare var box: {
+        color: string; width: number; height: number;
+        x: number; y: number; angle: number; borders: number;
+        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+      };
+      declare var wall: { color: string; borders: number; };
+      declare var status: { text: string; color: string; borders: number; };
+      declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
+      declare function setInterval(callback: Function, ms: number): number;
+      declare function setTimeout(callback: Function, ms: number): number;
+    `, 'filename/facts.d.ts');
   };
 
   const handleSaveCode = () => {
@@ -272,12 +280,23 @@ function App() {
             Goal: {scenario.description}
           </div>
           <div className="code-area">
-            <textarea
-              className="code-input"
+            <Editor
+              height="100%"
+              defaultLanguage="javascript"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={handleKeyDown}
-              spellCheck="false"
+              onChange={(value) => setCode(value || '')}
+              beforeMount={handleEditorWillMount}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 18,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                fontFamily: "'Fira Code', monospace",
+                suggestOnTriggerCharacters: true,
+                padding: { top: 10 }
+              }}
+              theme="vs-dark"
             />
             <button className="run-btn" onClick={handleRunCode}>
               <Play fill="white" size={24} /> RUN CODE!
