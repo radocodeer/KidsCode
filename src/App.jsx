@@ -25,8 +25,10 @@ function App() {
   const [savedFiles, setSavedFiles] = useState({});
 
   useEffect(() => {
-    const files = JSON.parse(localStorage.getItem('kidsJsSaves') || '{}');
-    setSavedFiles(files);
+    fetch('/api/load')
+      .then(res => res.json())
+      .then(data => setSavedFiles(data || {}))
+      .catch(err => console.error("Failed to load saved codes", err));
   }, []);
 
   // Update code when scenario changes
@@ -72,10 +74,23 @@ function App() {
       setLogs(prev => [...prev, "❌ Please enter a name first! (e.g. RadkoCode)"]);
       return;
     }
-    const newFiles = { ...savedFiles, [saveName]: code };
-    localStorage.setItem('kidsJsSaves', JSON.stringify(newFiles));
-    setSavedFiles(newFiles);
-    setLogs(prev => [...prev, `💾 Code saved as '${saveName}'!`]);
+    
+    fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: saveName, code })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        setSavedFiles(data.files);
+        setLogs(prev => [...prev, `💾 Code saved to C:\\Code_R\\KidsCode\\src\\SavedCode\\savedCode.json as '${saveName}'!`]);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      setLogs(prev => [...prev, "❌ Error saving code!"]);
+    });
   };
 
   const handleLoadCode = (name) => {
