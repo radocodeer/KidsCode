@@ -1,4 +1,4 @@
 {
   "RadkoCode": "// Try customizing the world!\n// wall.color = 'pink';\n// status.text = 'Hello World!';\n\nbox.color = 'purple';\n",
-  "Fifik": "let change = false;\n\nfunction blink() {\n    change = !change;\n\n    if (change) {\n        box.color = \"green\";\n    } else {\n        box.colorolor = \"red\";\n    }\n}\n\nsetInterval(blink, 1000);"
+  "Fifik": "let change = false;\n\nfunction blink() {\n    change = !change;\n\n    if (change) {\n        box.color = \"green\";\n    } else {\n        box.color = \"red\";\n    }\n}\n\nsetInterval(blink, 1000);"
 }

@@ -110,6 +110,7 @@ function App() {
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
+          if (!(prop in defaultBox)) throw new Error(`Oops! 'box' does not have a property named '${String(prop)}'`);
           target[prop] = value;
           setBoxState({ ...target });
           
@@ -122,6 +123,7 @@ function App() {
       
       const userStatus = new Proxy({ ...defaultStatus, ...statusState }, {
         set: (target, prop, value) => {
+          if (!(prop in defaultStatus)) throw new Error(`Oops! 'status' does not have a property named '${String(prop)}'`);
           target[prop] = value;
           setStatusState({ ...target });
           
@@ -134,6 +136,7 @@ function App() {
 
       const userWall = new Proxy({ ...defaultWall, ...wallState }, {
         set: (target, prop, value) => {
+          if (!(prop in defaultWall)) throw new Error(`Oops! 'wall' does not have a property named '${String(prop)}'`);
           target[prop] = value;
           setWallState({ ...target });
           
@@ -161,12 +164,23 @@ function App() {
       const env = { 
         ...scenario.environment,
         setInterval: (cb, ms) => {
-          const id = setInterval(cb, ms);
+          const id = setInterval(() => {
+            try { cb(); } catch (e) { 
+              setError(e.message); 
+              setLogs(prev => [...prev, "❌ ERROR: " + e.message]);
+              clearInterval(id); 
+            }
+          }, ms);
           intervalsRef.current.push(id);
           return id;
         },
         setTimeout: (cb, ms) => {
-          const id = setTimeout(cb, ms);
+          const id = setTimeout(() => {
+            try { cb(); } catch (e) { 
+              setError(e.message); 
+              setLogs(prev => [...prev, "❌ ERROR: " + e.message]);
+            }
+          }, ms);
           intervalsRef.current.push(id);
           return id;
         }
@@ -193,7 +207,8 @@ function App() {
       
     } catch (err) {
       console.error(err);
-      setError("Oops! There is a little mistake in the code. Keep trying!");
+      setError(err.message || "Oops! There is a little mistake in the code. Keep trying!");
+      setLogs(prev => [...prev, "❌ ERROR: " + (err.message || "Oops! Check your code!")]);
       setTimeout(() => setError(null), 3000);
     }
   };
