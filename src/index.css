@@ -462,24 +462,26 @@ textarea.code-input {
 /* Hairs */
 .hairs-container {
   position: absolute;
-  top: -15px;
+  top: -12px;
   left: 0;
   width: 100%;
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 6px;
 }
 
 .hair {
-  width: 15px;
-  height: 25px;
+  width: 6px;
+  height: 20px;
   background: #2D3436;
   border-radius: 50% 50% 0 0;
 }
 
-.spike-1 { transform: rotate(-20deg); }
-.spike-2 { height: 32px; top: -6px; position: relative; }
-.spike-3 { transform: rotate(20deg); }
+.spike-1 { transform: rotate(-30deg); top: 4px; position: relative; }
+.spike-2 { transform: rotate(-15deg); top: 1px; position: relative; }
+.spike-3 { height: 26px; top: -4px; position: relative; }
+.spike-4 { transform: rotate(15deg); top: 1px; position: relative; }
+.spike-5 { transform: rotate(30deg); top: 4px; position: relative; }
 
 /* Ears */
 .ear {
@@ -487,7 +489,7 @@ textarea.code-input {
   width: 20px;
   height: 35px;
   background: inherit;
-  top: 40%;
+  top: 15%;
   z-index: -1;
 }
 
@@ -508,26 +510,26 @@ textarea.code-input {
 /* Glasses */
 .glasses-container {
   position: absolute;
-  top: 25%;
+  top: 30%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -15%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   z-index: 5;
 }
 
 .glass-lens {
-  width: 38px;
-  height: 38px;
-  border: 5px solid #2D3436;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border: 4px solid #2D3436;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.3);
   box-shadow: inset 2px 2px 0px rgba(255, 255, 255, 0.5);
 }
 
 .glass-bridge {
-  width: 8px;
-  height: 5px;
+  width: 5px;
+  height: 4px;
   background: #2D3436;
 }

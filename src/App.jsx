@@ -9,7 +9,7 @@ function App() {
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hairs: false, ears: false, glasses: false, visible: true };
+  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true };
   const defaultStatus = { text: '', color: 'transparent', borders: 0, visible: true };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
   const defaultArr = Array(10).fill(null).map(() => ({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }));
@@ -65,14 +65,14 @@ function App() {
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
         eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
-        hairs: boolean; ears: boolean; glasses: boolean; visible: boolean;
+        hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
       };
       declare class Box {
         constructor();
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
         eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
-        hairs: boolean; ears: boolean; glasses: boolean; visible: boolean;
+        hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { text: string; color: string; borders: number; visible: boolean; };
@@ -486,11 +486,13 @@ function App() {
                   position: 'relative'
                 }}
               >
-                {boxState.hairs && (
+                {boxState.hair && (
                   <div className="hairs-container">
                     <div className="hair spike-1"></div>
                     <div className="hair spike-2"></div>
                     <div className="hair spike-3"></div>
+                    <div className="hair spike-4"></div>
+                    <div className="hair spike-5"></div>
                   </div>
                 )}
                 {boxState.ears && <div className="ear left-ear"></div>}
@@ -538,11 +540,13 @@ function App() {
                     position: 'absolute'
                   }}
                 >
-                  {ebox.hairs && (
+                  {ebox.hair && (
                     <div className="hairs-container">
                       <div className="hair spike-1"></div>
                       <div className="hair spike-2"></div>
                       <div className="hair spike-3"></div>
+                      <div className="hair spike-4"></div>
+                      <div className="hair spike-5"></div>
                     </div>
                   )}
                   {ebox.ears && <div className="ear left-ear"></div>}
