@@ -347,37 +347,49 @@ textarea.code-input {
 
 .nose {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  background: #FF7675;
-  border-radius: 50%;
+  width: 18px;
+  height: 12px;
+  background: #FF9F43;
+  border-radius: 10px;
   top: 55%;
   left: 50%;
   transform: translate(-50%, -50%);
+  box-shadow: inset -2px -2px 0px rgba(0,0,0,0.15);
 }
 
 .smile {
   position: absolute;
-  width: 40px;
-  height: 20px;
-  background: #fff;
+  width: 44px;
+  height: 24px;
+  background: #D63031;
   border: 4px solid #2D3436;
-  border-radius: 0 0 40px 40px;
+  border-radius: 0 0 44px 44px;
   top: 65%;
   left: 50%;
   transform: translateX(-50%);
   overflow: hidden;
+  box-shadow: 0 4px 0 #FF7675;
 }
 
-.smile::after {
-  content: '';
+.teeth {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: #FFFFFF;
+  border-bottom: 2px solid #2D3436;
+}
+
+.tongue {
   position: absolute;
   width: 24px;
   height: 24px;
   background: #FF7675;
   border-radius: 50%;
-  bottom: -12px;
-  left: 4px;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .hand {
@@ -445,4 +457,77 @@ textarea.code-input {
 }
 .right-leg::after {
   right: -4px;
+}
+
+/* Hairs */
+.hairs-container {
+  position: absolute;
+  top: -15px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.hair {
+  width: 15px;
+  height: 25px;
+  background: #2D3436;
+  border-radius: 50% 50% 0 0;
+}
+
+.spike-1 { transform: rotate(-20deg); }
+.spike-2 { height: 32px; top: -6px; position: relative; }
+.spike-3 { transform: rotate(20deg); }
+
+/* Ears */
+.ear {
+  position: absolute;
+  width: 20px;
+  height: 35px;
+  background: inherit;
+  top: 40%;
+  z-index: -1;
+}
+
+.left-ear {
+  left: -20px;
+  border-radius: 20px 0 0 20px;
+  border: 4px solid #2D3436;
+  border-right: none;
+}
+
+.right-ear {
+  right: -20px;
+  border-radius: 0 20px 20px 0;
+  border: 4px solid #2D3436;
+  border-left: none;
+}
+
+/* Glasses */
+.glasses-container {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+}
+
+.glass-lens {
+  width: 38px;
+  height: 38px;
+  border: 5px solid #2D3436;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 2px 2px 0px rgba(255, 255, 255, 0.5);
+}
+
+.glass-bridge {
+  width: 8px;
+  height: 5px;
+  background: #2D3436;
 }

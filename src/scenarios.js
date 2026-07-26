@@ -467,5 +467,36 @@ export const SCENARIOS = [
     initialCode: "setInterval(() => {\n  \n}, 50);",
     environment: { isRaining: false, isSunny: true },
     checkWin: (box) => box.x >= 50 && box.y >= 50
+  },
+  
+  // --- PART 12: OBJECT ORIENTED MAGIC (56-58) ---
+  {
+    id: 56,
+    title: 'Level 56: Your First Clone',
+    description: 'Use the Box constructor to make a new box! Type: let box1 = new Box(); then make it blue.',
+    initialCode: "box.visible = false;\nlet box1 = new Box();\nbox1.color = 'blue';",
+    environment: { isRaining: false, isSunny: true },
+    checkWin: (box, env, logs, status, wall, extraBoxes) => extraBoxes && extraBoxes.length > 0 && extraBoxes[0].color === 'blue'
+  },
+  {
+    id: 57,
+    title: 'Level 57: The Twins',
+    description: 'Make two boxes! let b1 = new Box(); let b2 = new Box(); Move b1 to x=-100 and b2 to x=100.',
+    initialCode: "box.visible = false;\nlet b1 = new Box();\nb1.x = -100;\n\n// Now make b2 and move it to 100",
+    environment: { isRaining: false, isSunny: true },
+    checkWin: (box, env, logs, status, wall, extraBoxes) => {
+      if (!extraBoxes || extraBoxes.length < 2) return false;
+      const b1 = extraBoxes.find(b => b.x === -100);
+      const b2 = extraBoxes.find(b => b.x === 100);
+      return b1 && b2;
+    }
+  },
+  {
+    id: 58,
+    title: 'Level 58: Box Army (Advanced)',
+    description: 'Use a FOR loop to create 5 boxes! Inside the loop: let b = new Box();',
+    initialCode: "box.visible = false;\nfor(let i = 0; i < 5; i++) {\n  let b = new Box();\n  b.x = i * 50 - 100;\n}",
+    environment: { isRaining: false, isSunny: true },
+    checkWin: (box, env, logs, status, wall, extraBoxes) => extraBoxes && extraBoxes.length >= 5
   }
 ];

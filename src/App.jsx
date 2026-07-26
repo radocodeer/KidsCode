@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Sparkles, CloudRain, Sun, RotateCcw, ChevronLeft, ChevronRight, Gamepad2, Moon, Save, FolderOpen } from 'lucide-react';
+import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
@@ -9,7 +9,7 @@ function App() {
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, visible: true };
+  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hairs: false, ears: false, glasses: false, visible: true };
   const defaultStatus = { text: '', color: 'transparent', borders: 0, visible: true };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
   const defaultArr = Array(10).fill(null).map(() => ({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }));
@@ -18,6 +18,7 @@ function App() {
   const [statusState, setStatusState] = useState(defaultStatus);
   const [wallState, setWallState] = useState(defaultWall);
   const [arrState, setArrState] = useState(defaultArr);
+  const [extraBoxes, setExtraBoxes] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -44,6 +45,7 @@ function App() {
     setStatusState({ ...defaultStatus });
     setWallState({ ...defaultWall });
     setArrState(defaultArr.map(item => ({ ...item })));
+    setExtraBoxes([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -62,8 +64,16 @@ function App() {
       declare var box: {
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean; visible: boolean;
+        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+        hairs: boolean; ears: boolean; glasses: boolean; visible: boolean;
       };
+      declare class Box {
+        constructor();
+        color: string; width: number; height: number;
+        x: number; y: number; angle: number; borders: number;
+        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+        hairs: boolean; ears: boolean; glasses: boolean; visible: boolean;
+      }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { text: string; color: string; borders: number; visible: boolean; };
       declare var arr: { color: string; visible: boolean; width: number; height: number; x: number; y: number; }[] & { amount: number };
@@ -111,6 +121,30 @@ function App() {
     setLogs([]);
     
     try {
+      const currentExtraBoxes = [];
+      class Box {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialBox = { ...defaultBox, id };
+          
+          const boxProxy = new Proxy(initialBox, {
+            set: (target, prop, value) => {
+              if (!(prop in defaultBox) && prop !== 'id') throw new Error(`Oops! Box does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraBoxes([...currentExtraBoxes]);
+              
+              if (scenario.checkWin(userBox, { ...scenario.environment }, logs, statusState, wallState, currentExtraBoxes)) {
+                setShowConfetti(true);
+              }
+              return true;
+            }
+          });
+          currentExtraBoxes.push(boxProxy);
+          setExtraBoxes([...currentExtraBoxes]);
+          return boxProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -219,6 +253,7 @@ function App() {
 
       const env = { 
         ...scenario.environment,
+        Box,
         setInterval: (cb, ms) => {
           const id = setInterval(() => {
             try { cb(); } catch (e) { 
@@ -243,21 +278,21 @@ function App() {
       };
       
       // We create a safe execution context using 'with' to allow variable shadowing
-      // The function expects parameters: box, status, wall, arr, console, env
-      const executeCode = new Function('box', 'status', 'wall', 'arr', 'console', 'env', `
+      // The function expects parameters: box, status, wall, arr, console, env, Box
+      const executeCode = new Function('box', 'status', 'wall', 'arr', 'console', 'env', 'Box', `
         with (env) {
           ${code}
         }
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userStatus, userWall, userArr, fakeConsole, env);
+      executeCode(userBox, userStatus, userWall, userArr, fakeConsole, env, Box);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
       
       // Check if they won the scenario
-      if (scenario.checkWin(userBox)) {
+      if (scenario.checkWin(userBox, { ...scenario.environment }, logs, userStatus, userWall, currentExtraBoxes)) {
         setTimeout(() => setShowConfetti(true), 300);
       }
       
@@ -273,14 +308,15 @@ function App() {
     <div className="app-container">
       <header className="header">
         <h1><Sparkles fill="#FF6B6B" color="#FF6B6B" /> Kids JS Magic</h1>
-        <div className="scenario-selector" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button 
-            className={`scenario-btn ${currentScenarioIndex === 0 ? 'active' : ''}`}
-            onClick={() => setCurrentScenarioIndex(0)}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-          >
-            <Gamepad2 size={18} /> Sandbox
-          </button>
+        
+          <div className="scenario-selector" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button 
+              className={`scenario-btn ${currentScenarioIndex === 0 ? 'active' : ''}`}
+              onClick={() => setCurrentScenarioIndex(0)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              Sandbox
+            </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f1f2f6', padding: '5px', borderRadius: '12px' }}>
             <button 
@@ -450,6 +486,15 @@ function App() {
                   position: 'relative'
                 }}
               >
+                {boxState.hairs && (
+                  <div className="hairs-container">
+                    <div className="hair spike-1"></div>
+                    <div className="hair spike-2"></div>
+                    <div className="hair spike-3"></div>
+                  </div>
+                )}
+                {boxState.ears && <div className="ear left-ear"></div>}
+                {boxState.ears && <div className="ear right-ear"></div>}
                 {boxState.hands && <div className="hand left-hand"></div>}
                 {boxState.hands && <div className="hand right-hand"></div>}
                 {boxState.legs && <div className="leg left-leg"></div>}
@@ -462,10 +507,75 @@ function App() {
                       <div className="eye"><div className="pupil"></div></div>
                     </div>
                   )}
+                  {boxState.glasses && (
+                    <div className="glasses-container">
+                      <div className="glass-lens left-lens"></div>
+                      <div className="glass-bridge"></div>
+                      <div className="glass-lens right-lens"></div>
+                    </div>
+                  )}
                   {boxState.nose && <div className="nose"></div>}
-                  {boxState.smile && <div className="smile"></div>}
+                  {boxState.smile && (
+                    <div className="smile">
+                      <div className="teeth"></div>
+                      <div className="tongue"></div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {extraBoxes.map((ebox) => (
+                <div 
+                  key={ebox.id}
+                  className="magic-box"
+                  style={{
+                    display: ebox.visible !== false ? 'block' : 'none',
+                    backgroundColor: ebox.color,
+                    width: `${ebox.width}px`,
+                    height: `${ebox.height}px`,
+                    transform: `translate(${ebox.x || 0}px, ${ebox.y || 0}px) rotate(${ebox.angle || 0}deg)`,
+                    border: ebox.borders ? `${ebox.borders}px solid #2D3436` : 'none',
+                    position: 'absolute'
+                  }}
+                >
+                  {ebox.hairs && (
+                    <div className="hairs-container">
+                      <div className="hair spike-1"></div>
+                      <div className="hair spike-2"></div>
+                      <div className="hair spike-3"></div>
+                    </div>
+                  )}
+                  {ebox.ears && <div className="ear left-ear"></div>}
+                  {ebox.ears && <div className="ear right-ear"></div>}
+                  {ebox.hands && <div className="hand left-hand"></div>}
+                  {ebox.hands && <div className="hand right-hand"></div>}
+                  {ebox.legs && <div className="leg left-leg"></div>}
+                  {ebox.legs && <div className="leg right-leg"></div>}
+
+                  <div className="face-container">
+                    {ebox.eyes && (
+                      <div className="eyes">
+                        <div className="eye"><div className="pupil"></div></div>
+                        <div className="eye"><div className="pupil"></div></div>
+                      </div>
+                    )}
+                    {ebox.glasses && (
+                      <div className="glasses-container">
+                        <div className="glass-lens left-lens"></div>
+                        <div className="glass-bridge"></div>
+                        <div className="glass-lens right-lens"></div>
+                      </div>
+                    )}
+                    {ebox.nose && <div className="nose"></div>}
+                    {ebox.smile && (
+                      <div className="smile">
+                        <div className="teeth"></div>
+                        <div className="tongue"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
 
               {arrState.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '80%', zIndex: 0 }}>
