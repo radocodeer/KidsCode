@@ -44,6 +44,43 @@ const fileManagerPlugin = () => {
           res.end(JSON.stringify(data));
           return;
         }
+        //test data RADO
+        if (req.url === '/api/test' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ message: 'Connection successful! This data came from the backend server 🚀' }));
+          return;
+        }
+        //test Show saved codes!!!
+        if (req.url === '/api/showcodes' && req.method === 'GET') {
+          const filePath = path.join(process.cwd(), 'src', 'SavedCode', 'savedCode.json');
+          let data = {};
+          if (fs.existsSync(filePath)) {
+            try {
+              data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            } catch(e) {}
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify(data));
+          
+          return;
+        }
+
+        if (req.url === '/api/echo' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const parsed = JSON.parse(body);
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ reply: `Backend says: I received "${parsed.text}" loud and clear!` }));
+            } catch(e) {
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ reply: "Backend error parsing JSON" }));
+            }
+          });
+          return;
+        }
+
         next();
       });
     }

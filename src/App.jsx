@@ -604,12 +604,21 @@ function App() {
             <div className="text-console">
               <div className="console-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>🖥️ Output</span>
-                <button 
-                  className="reset-btn"
-                  onClick={handleReset} 
-                >
-                  <RotateCcw size={18} /> RESET
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    className="reset-btn"
+                    onClick={() => window.location.href = '/test'}
+                    style={{ backgroundColor: '#2a2a4a', borderColor: '#4ECDC4', color: '#4ECDC4' }}
+                  >
+                    🛠️ TEST UI
+                  </button>
+                  <button 
+                    className="reset-btn"
+                    onClick={handleReset} 
+                  >
+                    <RotateCcw size={18} /> RESET
+                  </button>
+                </div>
               </div>
               <div className="console-logs">
                 {logs.length === 0 && <span style={{color: '#aaa', fontStyle: 'italic'}}>Waiting for logs...</span>}
