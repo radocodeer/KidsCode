@@ -421,7 +421,7 @@ export default function DutchGame() {
             <div style={styles.playerGrid}>
               {players.map((player) => {
                 const isWinner = hasGameStarted && !allEqual && player.totalScore === minScore;
-                const isLoser = hasGameStarted && !allEqual && player.totalScore === maxScore;
+                const isLoser = false; //hasGameStarted && !allEqual && player.totalScore === maxScore;
 
                 return (
                   <div key={player.id} style={styles.playerCard(isWinner, isLoser)}>
