@@ -42,6 +42,7 @@ function AppTest() {
   const handleMakeRed = () => {
     // Update the box color by merging the old state with the new color
     setBoxState(prevState => ({ ...prevState, color: '#e74c3c' }));
+    console.log(typeof(setBoxState));
   };
 
   const handleMakeSmile = () => {

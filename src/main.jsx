@@ -3,11 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import AppTest from './AppTest.jsx'
+import DutchGame from './DutchGame.jsx'
 
 const path = window.location.pathname;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {path === '/test' ? <AppTest /> : <App />}
+    {path === '/test' ? <AppTest /> : path === '/DutchGame' ? <DutchGame /> : <App />}
   </StrictMode>,
 )

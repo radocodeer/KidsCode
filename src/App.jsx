@@ -607,6 +607,13 @@ function App() {
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button 
                     className="reset-btn"
+                    onClick={() => window.location.href = '/DutchGame'}
+                    style={{ backgroundColor: '#2a2a4a', borderColor: '#4ECDC4', color: '#4ECDC4' }}
+                  >
+                    🛠️ Dutch GAME
+                  </button>
+                  <button 
+                    className="reset-btn"
                     onClick={() => window.location.href = '/test'}
                     style={{ backgroundColor: '#2a2a4a', borderColor: '#4ECDC4', color: '#4ECDC4' }}
                   >

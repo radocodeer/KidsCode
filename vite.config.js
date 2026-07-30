@@ -81,6 +81,43 @@ const fileManagerPlugin = () => {
           return;
         }
 
+        if (req.url === '/api/players' && req.method === 'GET') {
+          const filePath = path.join(process.cwd(), 'src', 'players.json');
+          let data = [];
+          if (fs.existsSync(filePath)) {
+            try {
+              data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            } catch(e) {}
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify(data));
+          return;
+        }
+
+        if (req.url === '/api/players' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            const filePath = path.join(process.cwd(), 'src', 'players.json');
+            let data = [];
+            if (fs.existsSync(filePath)) {
+              try {
+                data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+              } catch(e) {}
+            }
+            try {
+              const { name } = JSON.parse(body);
+              if (name && !data.includes(name)) {
+                data.push(name);
+                fs.writeFileSync(filePath, JSON.stringify(data, null, 4));
+              }
+            } catch(e) {}
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(data));
+          });
+          return;
+        }
+
         next();
       });
     }
