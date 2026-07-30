@@ -9,12 +9,33 @@ export default function DutchGame() {
   const [savedPlayers, setSavedPlayers] = useState([]);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
 
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
   useEffect(() => {
     fetch('/api/players')
       .then(res => res.json())
       .then(data => setSavedPlayers(data || []))
       .catch(err => console.error("Failed to load players", err));
   }, []);
+
+  useEffect(() => {
+    let interval = null;
+    if (gameState === 'playing' && startTime) {
+      interval = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [gameState, startTime]);
+
+  const formatTime = (totalSeconds) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   const handleNumPlayersChange = (e) => {
     const newNum = parseInt(e.target.value);
@@ -49,6 +70,8 @@ export default function DutchGame() {
     });
 
     setPlayers(initialPlayers);
+    setStartTime(Date.now());
+    setElapsedSeconds(0);
     setGameState('playing');
   };
 
@@ -73,6 +96,8 @@ export default function DutchGame() {
   const confirmReset = () => {
     setGameState('setup');
     setPlayers([]);
+    setStartTime(null);
+    setElapsedSeconds(0);
     setShowConfirmReset(false);
   };
 
@@ -192,35 +217,43 @@ export default function DutchGame() {
       marginBottom: '40px'
     },
     playerCard: (isWinner, isLoser) => ({
-      backgroundColor: '#0f172a',
+      backgroundColor: isWinner ? 'rgba(16, 185, 129, 0.15)' : isLoser ? 'rgba(239, 68, 68, 0.15)' : '#0f172a',
       borderRadius: '16px',
       padding: '24px',
       display: 'flex',
       flexDirection: 'column',
       gap: '20px',
-      border: `2px solid ${isWinner ? '#10b981' : isLoser ? '#ef4444' : '#334155'}`,
-      boxShadow: isWinner ? '0 0 30px rgba(16, 185, 129, 0.15)' : isLoser ? '0 0 30px rgba(239, 68, 68, 0.15)' : '0 4px 6px rgba(0,0,0,0.1)',
+      border: `4px solid ${isWinner ? '#10b981' : isLoser ? '#ef4444' : '#334155'}`,
+      boxShadow: isWinner ? '0 0 50px rgba(16, 185, 129, 0.4)' : isLoser ? '0 0 50px rgba(239, 68, 68, 0.4)' : '0 4px 6px rgba(0,0,0,0.1)',
+      transform: isWinner || isLoser ? 'scale(1.03)' : 'scale(1)',
       transition: 'all 0.3s ease',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      zIndex: isWinner || isLoser ? 10 : 1
     }),
     playerName: {
-      fontSize: '1.4rem',
-      fontWeight: '700',
+      fontSize: '1.6rem',
+      fontWeight: '800',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      zIndex: 1
+      gap: '15px',
+      flexWrap: 'wrap',
+      zIndex: 1,
+      color: '#ffffff',
+      wordBreak: 'break-word'
     },
     badge: (isWinner) => ({
-      fontSize: '0.8rem',
-      padding: '6px 12px',
-      borderRadius: '20px',
-      background: isWinner ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-      color: isWinner ? '#10b981' : '#ef4444',
-      fontWeight: '800',
+      fontSize: '1.2rem',
+      padding: '8px 16px',
+      borderRadius: '24px',
+      background: isWinner ? '#10b981' : '#ef4444',
+      color: '#ffffff',
+      fontWeight: '900',
       textTransform: 'uppercase',
-      letterSpacing: '1px'
+      letterSpacing: '2px',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+      textShadow: '0 2px 4px rgba(0,0,0,0.2)'
     }),
     scoreDisplay: {
       fontSize: '3.5rem',
@@ -382,6 +415,9 @@ export default function DutchGame() {
           </div>
         ) : (
           <div>
+            <div style={{ textAlign: 'center', marginBottom: '30px', fontSize: '1.5rem', color: '#94a3b8', fontWeight: '800' }}>
+              ⏱️ Time Elapsed: <span style={{ color: '#4ECDC4' }}>{formatTime(elapsedSeconds)}</span>
+            </div>
             <div style={styles.playerGrid}>
               {players.map((player) => {
                 const isWinner = hasGameStarted && !allEqual && player.totalScore === minScore;
@@ -398,8 +434,6 @@ export default function DutchGame() {
                     
                     <div style={styles.playerName}>
                       {player.name}
-                      {isWinner && <span style={styles.badge(true)}>Winner 🏆</span>}
-                      {isLoser && <span style={styles.badge(false)}>Loser 💀</span>}
                     </div>
                     <div style={styles.scoreDisplay}>
                       {player.totalScore}
@@ -422,6 +456,12 @@ export default function DutchGame() {
                         }}
                       />
                     </div>
+                    {(isWinner || isLoser) && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+                        {isWinner && <span style={styles.badge(true)}>Winner 🏆</span>}
+                        {isLoser && <span style={styles.badge(false)}>Most Points</span>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
