@@ -298,6 +298,20 @@ export default function DutchGame() {
       transition: 'border-color 0.3s ease',
       fontWeight: '600'
     },
+    adjustButton: {
+      backgroundColor: '#334155',
+      border: 'none',
+      color: '#f8fafc',
+      borderRadius: '12px',
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '60px',
+      transition: 'all 0.2s ease',
+    },
     actionBar: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -475,21 +489,39 @@ export default function DutchGame() {
                     </div>
                     <div style={styles.inputGroup}>
                       <label style={styles.inputLabel}>Points this Round</label>
-                      <input
-                        type="text"
-                        value={player.roundInput}
-                        onChange={(e) => handleRoundInputChange(player.id, e.target.value)}
-                        placeholder="e.g. 15"
-                        style={styles.inputField}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#4ECDC4';
-                          e.target.style.boxShadow = '0 0 0 3px rgba(78, 205, 196, 0.2)';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#334155';
-                          e.target.style.boxShadow = 'none';
-                        }}
-                      />
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                        <button
+                          style={styles.adjustButton}
+                          onClick={() => handleRoundInputChange(player.id, String((Number(player.roundInput) || 0) - 1))}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#475569'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#334155'}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="text"
+                          value={player.roundInput}
+                          onChange={(e) => handleRoundInputChange(player.id, e.target.value)}
+                          placeholder="e.g. 15"
+                          style={{ ...styles.inputField, textAlign: 'center', flex: 1, minWidth: '80px' }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#4ECDC4';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(78, 205, 196, 0.2)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#334155';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                        <button
+                          style={styles.adjustButton}
+                          onClick={() => handleRoundInputChange(player.id, String((Number(player.roundInput) || 0) + 1))}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#475569'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#334155'}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                     {(isWinner || isLoser) && (
                       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
