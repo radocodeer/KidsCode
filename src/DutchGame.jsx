@@ -57,7 +57,7 @@ export default function DutchGame() {
       name: name.trim() || `Player ${i + 1}`,
       totalScore: 0,
       roundInput: ''
-    }));
+    }));    
 
     // Save any custom names to backend
     initialPlayers.forEach(p => {
@@ -75,6 +75,13 @@ export default function DutchGame() {
     setElapsedSeconds(0);
     setRound(1);
     setGameState('playing');
+  };
+
+  //default players setup
+  const defaultSetUp = () => {
+    const defaults = ['Rado', 'Kami', 'Miso', 'Radko', 'Filipko', 'Oliver'];
+    setNumPlayers(defaults.length);
+    setPlayerNames(defaults);
   };
 
   const handleRoundInputChange = (id, value) => {
@@ -416,6 +423,20 @@ export default function DutchGame() {
               }}
             >
               Start Game 🚀
+            </button>
+            <button
+              style={styles.buttonPrimary}
+              onClick={defaultSetUp}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 15px 25px rgba(78, 205, 196, 0.4)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 10px 20px rgba(78, 205, 196, 0.3)';
+              }}
+            >
+              default 🚀
             </button>
           </div>
         ) : (
