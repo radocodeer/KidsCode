@@ -410,34 +410,38 @@ export default function DutchGame() {
                 />
               ))}
             </div>
-            <button
-              style={styles.buttonPrimary}
-              onClick={handleStartGame}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 15px 25px rgba(78, 205, 196, 0.4)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 20px rgba(78, 205, 196, 0.3)';
-              }}
-            >
-              Start Game 🚀
-            </button>
-            <button
-              style={styles.buttonPrimary}
-              onClick={defaultSetUp}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 15px 25px rgba(78, 205, 196, 0.4)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 20px rgba(78, 205, 196, 0.3)';
-              }}
-            >
-              default 🚀
-            </button>
+            <div style={{ display: 'flex', gap: '20px', flexDirection: 'row' }}>
+              <button
+                style={{ ...styles.buttonPrimary, background: '#334155' }}
+                onClick={defaultSetUp}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#475569';
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 15px 25px rgba(71, 85, 105, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#334155';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 10px 20px rgba(71, 85, 105, 0.3)';
+                }}
+              >
+                Default Players 👥
+              </button>
+              <button
+                style={styles.buttonPrimary}
+                onClick={handleStartGame}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 15px 25px rgba(78, 205, 196, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 10px 20px rgba(78, 205, 196, 0.3)';
+                }}
+              >
+                Start Game 🚀
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ width: '100%' }}>
