@@ -4,10 +4,11 @@ import './index.css';
 export default function DutchGame() {
   const [gameState, setGameState] = useState('setup'); // 'setup' | 'playing'
   const [numPlayers, setNumPlayers] = useState(4);
-  const [playerNames, setPlayerNames] = useState(Array.from({length: 4}, () => ''));
+  const [playerNames, setPlayerNames] = useState(Array.from({ length: 4 }, () => ''));
   const [players, setPlayers] = useState([]);
   const [savedPlayers, setSavedPlayers] = useState([]);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [round, setRound] = useState(1);
 
   const [startTime, setStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -42,7 +43,7 @@ export default function DutchGame() {
     setNumPlayers(newNum);
     setPlayerNames(prev => {
       if (newNum > prev.length) {
-        return [...prev, ...Array.from({length: newNum - prev.length}, () => '')];
+        return [...prev, ...Array.from({ length: newNum - prev.length }, () => '')];
       } else {
         return prev.slice(0, newNum);
       }
@@ -72,6 +73,7 @@ export default function DutchGame() {
     setPlayers(initialPlayers);
     setStartTime(Date.now());
     setElapsedSeconds(0);
+    setRound(1);
     setGameState('playing');
   };
 
@@ -87,6 +89,7 @@ export default function DutchGame() {
       totalScore: p.totalScore + (parseInt(p.roundInput) || 0),
       roundInput: ''
     })));
+    setRound(prev => prev + 1);
   };
 
   const handleResetGame = () => {
@@ -99,6 +102,7 @@ export default function DutchGame() {
     setStartTime(null);
     setElapsedSeconds(0);
     setShowConfirmReset(false);
+    setRound(1);
   };
 
   const cancelReset = () => {
@@ -109,7 +113,7 @@ export default function DutchGame() {
   const scores = players.map(p => p.totalScore);
   const minScore = players.length > 0 ? Math.min(...scores) : 0;
   const maxScore = players.length > 0 ? Math.max(...scores) : 0;
-  
+  const sortedPlayers = [...players].sort((a, b) => a.totalScore - b.totalScore);
   const hasGameStarted = players.some(p => p.totalScore !== 0);
   const allEqual = players.length > 0 && scores.every(s => s === scores[0]);
 
@@ -342,7 +346,7 @@ export default function DutchGame() {
     <div style={styles.container}>
       {/* Navigation back to main app */}
       <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
-        <button 
+        <button
           onClick={() => window.location.href = '/'}
           style={{ ...styles.buttonSecondary, display: 'flex', alignItems: 'center', gap: '8px' }}
         >
@@ -353,16 +357,17 @@ export default function DutchGame() {
       <h1 style={styles.header}>Dutch Game</h1>
       <p style={styles.subtitle}>Premium Score Tracker</p>
 
-      <div style={styles.card}>
-        {gameState === 'setup' ? (
-          <div style={styles.setupContainer}>
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', width: '100%', maxWidth: '1400px', margin: '0 auto', alignItems: 'flex-start' }}>
+        <div style={styles.card}>
+          {gameState === 'setup' ? (
+            <div style={styles.setupContainer}>
             <div style={styles.sliderLabel}>Number of Players</div>
             <div style={styles.sliderValue}>{numPlayers}</div>
-            <input 
-              type="range" 
-              min="2" 
-              max="20" 
-              value={numPlayers} 
+            <input
+              type="range"
+              min="2"
+              max="20"
+              value={numPlayers}
               onChange={handleNumPlayersChange}
               style={styles.slider}
             />
@@ -375,7 +380,7 @@ export default function DutchGame() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', width: '100%', maxWidth: '800px', marginTop: '10px', marginBottom: '10px' }}>
               {playerNames.map((name, idx) => (
-                <input 
+                <input
                   key={idx}
                   type="text"
                   list="player-suggestions"
@@ -386,7 +391,7 @@ export default function DutchGame() {
                     setPlayerNames(newNames);
                   }}
                   placeholder={`Player ${idx + 1}`}
-                  style={{...styles.inputField, padding: '10px', fontSize: '1rem'}}
+                  style={{ ...styles.inputField, padding: '10px', fontSize: '1rem' }}
                   onFocus={(e) => {
                     e.target.style.borderColor = '#4ECDC4';
                     e.target.style.boxShadow = '0 0 0 3px rgba(78, 205, 196, 0.2)';
@@ -398,8 +403,8 @@ export default function DutchGame() {
                 />
               ))}
             </div>
-            <button 
-              style={styles.buttonPrimary} 
+            <button
+              style={styles.buttonPrimary}
               onClick={handleStartGame}
               onMouseOver={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)';
@@ -414,10 +419,13 @@ export default function DutchGame() {
             </button>
           </div>
         ) : (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: '30px', fontSize: '1.5rem', color: '#94a3b8', fontWeight: '800' }}>
-              ⏱️ Time Elapsed: <span style={{ color: '#4ECDC4' }}>{formatTime(elapsedSeconds)}</span>
+          <div style={{ width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginBottom: '20px', fontSize: '1.5rem', color: '#94a3b8', fontWeight: '800' }}>
+              <div>⏱️ Time: <span style={{ color: '#4ECDC4' }}>{formatTime(elapsedSeconds)}</span></div>
+              <div>Round: <span style={{ color: '#4ECDC4' }}>{round}</span></div>
             </div>
+
+
             <div style={styles.playerGrid}>
               {players.map((player) => {
                 const isWinner = hasGameStarted && !allEqual && player.totalScore === minScore;
@@ -431,7 +439,7 @@ export default function DutchGame() {
                     {isLoser && (
                       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#ef4444' }} />
                     )}
-                    
+
                     <div style={styles.playerName}>
                       {player.name}
                     </div>
@@ -440,8 +448,8 @@ export default function DutchGame() {
                     </div>
                     <div style={styles.inputGroup}>
                       <label style={styles.inputLabel}>Points this Round</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={player.roundInput}
                         onChange={(e) => handleRoundInputChange(player.id, e.target.value)}
                         placeholder="e.g. 15"
@@ -468,16 +476,16 @@ export default function DutchGame() {
             </div>
 
             <div style={styles.actionBar}>
-              <button 
-                style={styles.buttonDanger} 
+              <button
+                style={styles.buttonDanger}
                 onClick={handleResetGame}
                 onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
                 onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
               >
                 Reset Game
               </button>
-              <button 
-                style={styles.buttonPrimary} 
+              <button
+                style={styles.buttonPrimary}
                 onClick={handleFinishRound}
                 onMouseOver={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
@@ -495,22 +503,43 @@ export default function DutchGame() {
         )}
       </div>
 
+      {/* Right Column: Floating Leaderboard (Outside the card, only visible when playing) */}
+      {gameState === 'playing' && (
+        <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '100px' }}>
+          <div style={{ backgroundColor: '#1e293b', padding: '10px', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+            <span style={{ fontSize: '1rem', fontWeight: '800', color: '#f8fafc' }}>🏆 Leaderboard</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sortedPlayers.map((p, index) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: index === 0 && hasGameStarted ? 'rgba(16, 185, 129, 0.15)' : '#1e293b', padding: '10px 15px', borderRadius: '8px', border: index === 0 && hasGameStarted ? '1px solid #10b981' : '1px solid #334155', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: index === 0 && hasGameStarted ? '#10b981' : '#94a3b8' }}>#{index + 1}</span>
+                  <span style={{ fontSize: '1rem', fontWeight: '700', color: '#f8fafc' }}>{p.name}</span>
+                </div>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#4ECDC4' }}>{p.totalScore}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
       {showConfirmReset && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
             <h2 style={styles.modalTitle}>Reset Game?</h2>
             <p style={styles.modalText}>Are you sure you want to reset the game? All current scores and players will be lost.</p>
             <div style={styles.modalActions}>
-              <button 
-                style={styles.buttonSecondary} 
+              <button
+                style={styles.buttonSecondary}
                 onClick={cancelReset}
                 onMouseOver={(e) => e.currentTarget.style.background = '#475569'}
                 onMouseOut={(e) => e.currentTarget.style.background = '#334155'}
               >
                 Cancel
               </button>
-              <button 
-                style={styles.buttonDanger} 
+              <button
+                style={styles.buttonDanger}
                 onClick={confirmReset}
                 onMouseOver={(e) => {
                   e.currentTarget.style.background = '#dc2626';
