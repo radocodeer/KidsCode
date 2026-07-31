@@ -373,7 +373,7 @@ export default function DutchGame() {
             />
 
             <datalist id="player-suggestions">
-              {savedPlayers.map((p, i) => (
+              {savedPlayers.filter(p => !playerNames.includes(p)).map((p, i) => (
                 <option key={i} value={p} />
               ))}
             </datalist>
@@ -430,6 +430,7 @@ export default function DutchGame() {
               {players.map((player) => {
                 const isWinner = hasGameStarted && !allEqual && player.totalScore === minScore;
                 const isLoser = false; //hasGameStarted && !allEqual && player.totalScore === maxScore;
+                const playerRank = hasGameStarted ? sortedPlayers.findIndex(p => p.id === player.id) + 1 : '-';
 
                 return (
                   <div key={player.id} style={styles.playerCard(isWinner, isLoser)}>
@@ -441,6 +442,7 @@ export default function DutchGame() {
                     )}
 
                     <div style={styles.playerName}>
+                      <span style={{ fontSize: '1.2rem', color: isWinner ? '#10b981' : '#94a3b8', marginRight: '10px' }}>#{playerRank}</span>
                       {player.name}
                     </div>
                     <div style={styles.scoreDisplay}>
