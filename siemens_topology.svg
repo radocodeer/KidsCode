@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" style="background-color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif;">
+    <defs>
+        <filter id="shadow" x="-5%" y="-5%" width="120%" height="120%">
+            <feDropShadow dx="2" dy="5" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.15"/>
+        </filter>
+        <linearGradient id="masterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#005bbb" />
+            <stop offset="100%" stop-color="#003f8a" />
+        </linearGradient>
+        <linearGradient id="slaveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#f8fafc" />
+        </linearGradient>
+    </defs>
+
+    <!-- Title -->
+    <text x="800" y="60" font-size="26" font-weight="800" fill="#1e293b" text-anchor="middle">Oxymat Siemens</text>
+    <text x="800" y="90" font-size="20" font-weight="600" fill="#475569" text-anchor="middle">Topology</text>
+    <text x="800" y="120" font-size="18" font-weight="normal" fill="#64748b" text-anchor="middle">Ethernet TCP/IP</text>
+
+    <!-- Master Node (X_CON) -->
+    <rect x="400" y="60" width="200" height="140" fill="url(#masterGrad)" rx="10" filter="url(#shadow)" />
+    <text x="500" y="100" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">X_CON PLC</text>
+    <text x="500" y="135" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">X_CON HMI</text>
+    <text x="500" y="170" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">SWITCH</text>
+
+    <!-- Ethernet Backbone Line -->
+    <line x1="500" y1="200" x2="500" y2="280" stroke="#0ea5e9" stroke-width="5" />
+    <line x1="150" y1="280" x2="850" y2="280" stroke="#0ea5e9" stroke-width="5" />
+    <circle cx="500" cy="280" r="4" fill="#0ea5e9" />
+
+    <!-- Line 1 Node -->
+    <line x1="150" y1="280" x2="150" y2="340" stroke="#0ea5e9" stroke-width="5" />
+    <circle cx="150" cy="280" r="4" fill="#0ea5e9" />
+    <rect x="75" y="340" width="150" height="130" fill="url(#slaveGrad)" stroke="#cbd5e1" stroke-width="2" rx="8" filter="url(#shadow)" />
+    <text x="150" y="380" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line1 PLC</text>
+    <text x="150" y="415" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line1 HMI</text>
+    <text x="150" y="450" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Switch</text>
+
+    <!-- Line 2 Node -->
+    <line x1="383" y1="280" x2="383" y2="340" stroke="#0ea5e9" stroke-width="5" />
+    <circle cx="383" cy="280" r="4" fill="#0ea5e9" />
+    <rect x="308" y="340" width="150" height="130" fill="url(#slaveGrad)" stroke="#cbd5e1" stroke-width="2" rx="8" filter="url(#shadow)" />
+    <text x="383" y="380" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line2 PLC</text>
+    <text x="383" y="415" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line2 HMI</text>
+    <text x="383" y="450" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Switch</text>
+
+    <!-- Line 3 Node -->
+    <line x1="616" y1="280" x2="616" y2="340" stroke="#0ea5e9" stroke-width="5" />
+    <circle cx="616" cy="280" r="4" fill="#0ea5e9" />
+    <rect x="541" y="340" width="150" height="130" fill="url(#slaveGrad)" stroke="#cbd5e1" stroke-width="2" rx="8" filter="url(#shadow)" />
+    <text x="616" y="380" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line3 PLC</text>
+    <text x="616" y="415" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line3 HMI</text>
+    <text x="616" y="450" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Switch</text>
+
+    <!-- Line 4 Node -->
+    <line x1="850" y1="280" x2="850" y2="340" stroke="#0ea5e9" stroke-width="5" />
+    <circle cx="850" cy="280" r="4" fill="#0ea5e9" />
+    <rect x="775" y="340" width="150" height="130" fill="url(#slaveGrad)" stroke="#cbd5e1" stroke-width="2" rx="8" filter="url(#shadow)" />
+    <text x="850" y="380" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line4 PLC</text>
+    <text x="850" y="415" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Line4 HMI</text>
+    <text x="850" y="450" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Switch</text>
+</svg>

@@ -9,16 +9,17 @@ function App() {
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true };
+  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
   const defaultStatus = { text: '', color: 'transparent', borders: 0, visible: true };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
-  const defaultArr = Array(10).fill(null).map(() => ({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }));
+  const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: false, onClick: null };
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
   const [wallState, setWallState] = useState(defaultWall);
-  const [arrState, setArrState] = useState(defaultArr);
+  const [buttonState, setButtonState] = useState(defaultButton);
   const [extraBoxes, setExtraBoxes] = useState([]);
+  const [extraButtons, setExtraButtons] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -44,8 +45,9 @@ function App() {
     setBoxState({ ...defaultBox });
     setStatusState({ ...defaultStatus });
     setWallState({ ...defaultWall });
-    setArrState(defaultArr.map(item => ({ ...item })));
+    setButtonState({ ...defaultButton });
     setExtraBoxes([]);
+    setExtraButtons([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -66,6 +68,7 @@ function App() {
         x: number; y: number; angle: number; borders: number;
         eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
         hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
+        text: string; onClick: Function;
       };
       declare class Box {
         constructor();
@@ -73,10 +76,17 @@ function App() {
         x: number; y: number; angle: number; borders: number;
         eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
         hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
+        text: string; onClick: Function;
+      }
+      declare var button: { text: string; color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onClick: Function; };
+      declare class Button {
+        constructor();
+        text: string; color: string; width: number; height: number;
+        x: number; y: number; borders: number; visible: boolean;
+        onClick: Function;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { text: string; color: string; borders: number; visible: boolean; };
-      declare var arr: { color: string; visible: boolean; width: number; height: number; x: number; y: number; }[] & { amount: number };
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
       declare function setTimeout(callback: Function, ms: number): number;
@@ -145,6 +155,26 @@ function App() {
         }
       }
 
+      const currentExtraButtons = [];
+      class Button {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialBtn = { ...defaultButton, id, visible: true };
+          
+          const btnProxy = new Proxy(initialBtn, {
+            set: (target, prop, value) => {
+              if (!(prop in defaultButton) && prop !== 'id') throw new Error(`Oops! Button does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraButtons([...currentExtraButtons]);
+              return true;
+            }
+          });
+          currentExtraButtons.push(btnProxy);
+          setExtraButtons([...currentExtraButtons]);
+          return btnProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -185,55 +215,12 @@ function App() {
         }
       });
 
-      const createInnerProxy = (item, index) => new Proxy({ ...item }, {
-        set: (t, p, v) => {
-          if (!['color', 'visible', 'width', 'height', 'x', 'y'].includes(p)) throw new Error(`Oops! arr items only have 'color', 'visible', 'width', 'height', 'x', and 'y' properties`);
-          t[p] = v;
-          setArrState(prevArr => {
-            const newArr = [...prevArr];
-            newArr[index] = { ...t };
-            return newArr;
-          });
-          
-          if (scenario.checkWin(userBox, { ...scenario.environment }, logs, statusState, wallState)) {
-            setShowConfetti(true);
-          }
-          return true;
-        }
-      });
-
-      const innerProxies = arrState.map(createInnerProxy);
-      
-      const userArr = new Proxy(innerProxies, {
+      const userButton = new Proxy({ ...defaultButton, ...buttonState }, {
         set: (target, prop, value) => {
-          if (prop === 'amount') {
-            const amount = Math.min(Math.max(0, Number(value)), 400); // limit 400 squares max
-            const newArr = Array(amount).fill(0).map((_, i) => arrState[i] || { color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 });
-            
-            // Synchronously update the proxy's target so subsequent code in the same block works!
-            target.length = amount;
-            for (let i = 0; i < amount; i++) {
-              if (!target[i]) {
-                target[i] = createInnerProxy({ color: 'black', visible: true, width: 30, height: 30, x: 0, y: 0 }, i);
-              }
-            }
-            
-            setArrState(newArr);
-            return true;
-          }
-          throw new Error(`Oops! You can only change arr.amount, arr[i].color, or arr[i].visible`);
-        },
-        get: (target, prop) => {
-          if (prop === 'amount') return arrState.length;
-          
-          if (typeof prop === 'string' && !isNaN(prop) && prop.trim() !== '') {
-            const index = Number(prop);
-            if (index >= target.length || index < 0) {
-              throw new Error(`Oops! You tried to access arr[${index}], but that box doesn't exist yet. Try adding 'arr.amount = ${index + 1};' first!`);
-            }
-          }
-          
-          return target[prop];
+          if (!(prop in defaultButton)) throw new Error(`Oops! 'button' does not have a property named '${String(prop)}'`);
+          target[prop] = value;
+          setButtonState({ ...target });
+          return true;
         }
       });
       
@@ -278,15 +265,15 @@ function App() {
       };
       
       // We create a safe execution context using 'with' to allow variable shadowing
-      // The function expects parameters: box, status, wall, arr, console, env, Box
-      const executeCode = new Function('box', 'status', 'wall', 'arr', 'console', 'env', 'Box', `
+      // The function expects parameters: box, status, wall, button, console, env, Box, Button
+      const executeCode = new Function('box', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', `
         with (env) {
           ${code}
         }
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userStatus, userWall, userArr, fakeConsole, env, Box);
+      executeCode(userBox, userStatus, userWall, userButton, fakeConsole, env, Box, Button);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -416,7 +403,8 @@ function App() {
                 wordWrap: 'on',
                 fontFamily: "'Fira Code', monospace",
                 suggestOnTriggerCharacters: true,
-                padding: { top: 10 }
+                padding: { top: 10 },
+                showDeprecated: false
               }}
               theme="vs-dark"
             />
@@ -476,6 +464,7 @@ function App() {
 
               <div 
                 className="magic-box"
+                onClick={() => boxState.onClick && typeof boxState.onClick === 'function' && boxState.onClick()}
                 style={{
                   display: boxState.visible !== false ? 'block' : 'none',
                   backgroundColor: boxState.color,
@@ -483,9 +472,17 @@ function App() {
                   height: `${boxState.height}px`,
                   transform: `translate(${boxState.x || 0}px, ${boxState.y || 0}px) rotate(${boxState.angle || 0}deg)`,
                   border: boxState.borders ? `${boxState.borders}px solid #2D3436` : 'none',
-                  position: 'relative'
+                  position: 'relative',
+                  cursor: boxState.onClick ? 'pointer' : 'default'
                 }}
               >
+                {boxState.text && (
+                  <div style={{ position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)', background: 'white', padding: '5px 10px', borderRadius: '10px', border: '2px solid #2D3436', fontWeight: 'bold', color: '#2D3436', whiteSpace: 'nowrap', zIndex: 10 }}>
+                    {boxState.text}
+                    <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #2D3436' }}></div>
+                    <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
+                  </div>
+                )}
                 {boxState.hair && (
                   <div className="hairs-container">
                     <div className="hair spike-1"></div>
@@ -530,6 +527,7 @@ function App() {
                 <div 
                   key={ebox.id}
                   className="magic-box"
+                  onClick={() => ebox.onClick && typeof ebox.onClick === 'function' && ebox.onClick()}
                   style={{
                     display: ebox.visible !== false ? 'block' : 'none',
                     backgroundColor: ebox.color,
@@ -537,9 +535,17 @@ function App() {
                     height: `${ebox.height}px`,
                     transform: `translate(${ebox.x || 0}px, ${ebox.y || 0}px) rotate(${ebox.angle || 0}deg)`,
                     border: ebox.borders ? `${ebox.borders}px solid #2D3436` : 'none',
-                    position: 'absolute'
+                    position: 'absolute',
+                    cursor: ebox.onClick ? 'pointer' : 'default'
                   }}
                 >
+                  {ebox.text && (
+                    <div style={{ position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)', background: 'white', padding: '5px 10px', borderRadius: '10px', border: '2px solid #2D3436', fontWeight: 'bold', color: '#2D3436', whiteSpace: 'nowrap', zIndex: 10 }}>
+                      {ebox.text}
+                      <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #2D3436' }}></div>
+                      <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
+                    </div>
+                  )}
                   {ebox.hair && (
                     <div className="hairs-container">
                       <div className="hair spike-1"></div>
@@ -581,23 +587,56 @@ function App() {
                 </div>
               ))}
 
-              {arrState.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '80%', zIndex: 0 }}>
-                  {arrState.map((b, i) => (
-                    <div 
-                      key={`arr-${i}`}
-                      style={{
-                        visibility: b.visible !== false ? 'visible' : 'hidden',
-                        backgroundColor: b.color,
-                        width: `${b.width !== undefined ? b.width : 30}px`,
-                        height: `${b.height !== undefined ? b.height : 30}px`,
-                        transform: `translate(${b.x || 0}px, ${b.y || 0}px)`,
-                        borderRadius: '4px'
-                      }}
-                    />
-                  ))}
+              <div 
+                className="magic-button"
+                onClick={() => buttonState.onClick && typeof buttonState.onClick === 'function' && buttonState.onClick()}
+                style={{
+                  display: buttonState.visible !== false ? 'flex' : 'none',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: buttonState.color,
+                  width: `${buttonState.width}px`,
+                  height: `${buttonState.height}px`,
+                  transform: `translate(${buttonState.x || 0}px, ${buttonState.y || 0}px)`,
+                  border: buttonState.borders ? `${buttonState.borders}px solid #2D3436` : 'none',
+                  position: 'absolute',
+                  cursor: buttonState.onClick ? 'pointer' : 'default',
+                  borderRadius: '20px',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                  userSelect: 'none'
+                }}
+              >
+                {buttonState.text}
+              </div>
+
+              {extraButtons.map((ebtn) => (
+                <div 
+                  key={ebtn.id}
+                  className="magic-button"
+                  onClick={() => ebtn.onClick && typeof ebtn.onClick === 'function' && ebtn.onClick()}
+                  style={{
+                    display: ebtn.visible !== false ? 'flex' : 'none',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: ebtn.color,
+                    width: `${ebtn.width}px`,
+                    height: `${ebtn.height}px`,
+                    transform: `translate(${ebtn.x || 0}px, ${ebtn.y || 0}px)`,
+                    border: ebtn.borders ? `${ebtn.borders}px solid #2D3436` : 'none',
+                    position: 'absolute',
+                    cursor: ebtn.onClick ? 'pointer' : 'default',
+                    borderRadius: '20px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                    userSelect: 'none'
+                  }}
+                >
+                  {ebtn.text}
                 </div>
-              )}
+              ))}
             </div>
             
             {/* Text Console */}
