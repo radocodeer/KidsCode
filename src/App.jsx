@@ -10,9 +10,9 @@ function App() {
   
   const [code, setCode] = useState(scenario.initialCode);
   const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
-  const defaultStatus = { text: '', color: 'transparent', borders: 0, visible: true };
+  const defaultStatus = { text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: 0 };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
-  const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: false, onClick: null };
+  const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: true, onClick: null };
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
@@ -20,6 +20,7 @@ function App() {
   const [buttonState, setButtonState] = useState(defaultButton);
   const [extraBoxes, setExtraBoxes] = useState([]);
   const [extraButtons, setExtraButtons] = useState([]);
+  const [extraStatuses, setExtraStatuses] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -48,6 +49,7 @@ function App() {
     setButtonState({ ...defaultButton });
     setExtraBoxes([]);
     setExtraButtons([]);
+    setExtraStatuses([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -86,7 +88,11 @@ function App() {
         onClick: Function;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
-      declare var status: { text: string; color: string; borders: number; visible: boolean; };
+      declare var status: { text: string; color: string; borders: number; visible: boolean; x: number; y: number; };
+      declare class Status {
+        constructor();
+        text: string; color: string; borders: number; visible: boolean; x: number; y: number;
+      }
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
       declare function setTimeout(callback: Function, ms: number): number;
@@ -172,6 +178,26 @@ function App() {
           currentExtraButtons.push(btnProxy);
           setExtraButtons([...currentExtraButtons]);
           return btnProxy;
+        }
+      }
+
+      const currentExtraStatuses = [];
+      class Status {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialStatus = { ...defaultStatus, id, visible: true };
+          
+          const statusProxy = new Proxy(initialStatus, {
+            set: (target, prop, value) => {
+              if (!(prop in defaultStatus) && prop !== 'id') throw new Error(`Oops! Status does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraStatuses([...currentExtraStatuses]);
+              return true;
+            }
+          });
+          currentExtraStatuses.push(statusProxy);
+          setExtraStatuses([...currentExtraStatuses]);
+          return statusProxy;
         }
       }
 
@@ -265,15 +291,15 @@ function App() {
       };
       
       // We create a safe execution context using 'with' to allow variable shadowing
-      // The function expects parameters: box, status, wall, button, console, env, Box, Button
-      const executeCode = new Function('box', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', `
+      // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
+      const executeCode = new Function('box', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', 'Status', `
         with (env) {
           ${code}
         }
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userStatus, userWall, userButton, fakeConsole, env, Box, Button);
+      executeCode(userBox, userStatus, userWall, userButton, fakeConsole, env, Box, Button, Status);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -443,8 +469,8 @@ function App() {
                 style={{
                   display: statusState.visible !== false ? 'block' : 'none',
                   position: 'absolute',
-                  top: '20px',
-                  left: '50%',
+                  top: `${20 + (statusState.y || 0)}px`,
+                  left: `calc(50% + ${statusState.x || 0}px)`,
                   transform: 'translateX(-50%)',
                   backgroundColor: statusState.color,
                   border: statusState.borders ? `${statusState.borders}px solid #2D3436` : 'none',
@@ -461,6 +487,33 @@ function App() {
               >
                 {statusState.text}
               </div>
+
+              {extraStatuses.map((estatus) => (
+                <div 
+                  key={estatus.id}
+                  className="status-banner"
+                  style={{
+                    display: estatus.visible !== false ? 'block' : 'none',
+                    position: 'absolute',
+                    top: `${20 + (estatus.y || 0)}px`,
+                    left: `calc(50% + ${estatus.x || 0}px)`,
+                    transform: 'translateX(-50%)',
+                    backgroundColor: estatus.color,
+                    border: estatus.borders ? `${estatus.borders}px solid #2D3436` : 'none',
+                    padding: estatus.text ? '10px 20px' : '0',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    fontSize: '1.2rem',
+                    color: '#2D3436',
+                    zIndex: 5,
+                    minWidth: estatus.text ? '100px' : '0',
+                    textAlign: 'center',
+                    boxShadow: estatus.text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  {estatus.text}
+                </div>
+              ))}
 
               <div 
                 className="magic-box"
