@@ -9,18 +9,21 @@ function App() {
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, smile: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
+  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
   const defaultStatus = { text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: 0 };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
   const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: true, onClick: null };
+  const defaultCreeper = { color: '#27ae60', width: 100, height: 180, x: -200, y: 0, eyes: true, mouth: true, legs: true, hands: false, angle: 0, borders: 0, visible: true, text: '', onClick: null };
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
   const [wallState, setWallState] = useState(defaultWall);
   const [buttonState, setButtonState] = useState(defaultButton);
+  const [creeperState, setCreeperState] = useState(defaultCreeper);
   const [extraBoxes, setExtraBoxes] = useState([]);
   const [extraButtons, setExtraButtons] = useState([]);
   const [extraStatuses, setExtraStatuses] = useState([]);
+  const [extraCreepers, setExtraCreepers] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -75,9 +78,11 @@ function App() {
     setStatusState({ ...defaultStatus });
     setWallState({ ...defaultWall });
     setButtonState({ ...defaultButton });
+    setCreeperState({ ...defaultCreeper });
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
+    setExtraCreepers([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -96,7 +101,7 @@ function App() {
       declare var box: {
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+        eyes: boolean; mouth: boolean; nose: boolean; hands: boolean; legs: boolean;
         hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
         text: string; onClick: Function;
       };
@@ -104,8 +109,21 @@ function App() {
         constructor();
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; smile: boolean; nose: boolean; hands: boolean; legs: boolean;
+        eyes: boolean; mouth: boolean; nose: boolean; hands: boolean; legs: boolean;
         hair: boolean; ears: boolean; glasses: boolean; visible: boolean;
+        text: string; onClick: Function;
+      }
+      declare var creeper: {
+        color: string; width: number; height: number;
+        x: number; y: number; angle: number; borders: number;
+        eyes: boolean; mouth: boolean; hands: boolean; legs: boolean; visible: boolean;
+        text: string; onClick: Function;
+      };
+      declare class Creeper {
+        constructor();
+        color: string; width: number; height: number;
+        x: number; y: number; angle: number; borders: number;
+        eyes: boolean; mouth: boolean; hands: boolean; legs: boolean; visible: boolean;
         text: string; onClick: Function;
       }
       declare var button: { text: string; color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onClick: Function; };
@@ -255,6 +273,26 @@ function App() {
         }
       }
 
+      const currentExtraCreepers = [];
+      class Creeper {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialCreeper = { ...defaultCreeper, id };
+          
+          const creeperProxy = new Proxy(initialCreeper, {
+            set: (target, prop, value) => {
+              if (!(prop in defaultCreeper) && prop !== 'id') throw new Error(`Oops! Creeper does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraCreepers([...currentExtraCreepers]);
+              return true;
+            }
+          });
+          currentExtraCreepers.push(creeperProxy);
+          setExtraCreepers([...currentExtraCreepers]);
+          return creeperProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -304,6 +342,15 @@ function App() {
         }
       });
       
+      const userCreeper = new Proxy({ ...defaultCreeper, ...creeperState }, {
+        set: (target, prop, value) => {
+          if (!(prop in defaultCreeper)) throw new Error(`Oops! 'creeper' does not have a property named '${String(prop)}'`);
+          target[prop] = value;
+          setCreeperState({ ...target });
+          return true;
+        }
+      });
+      
       const fakeConsole = {
         log: (...args) => {
           const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
@@ -321,6 +368,7 @@ function App() {
       const env = { 
         ...scenario.environment,
         Box,
+        Creeper,
         setInterval: (cb, ms) => {
           const id = setInterval(() => {
             try { cb(); } catch (e) { 
@@ -347,7 +395,7 @@ function App() {
       // We create a safe execution context using 'with' to allow variable shadowing
       // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
       const libraryCode = (savedFiles['Library'] && saveName !== 'Library') ? savedFiles['Library'] : '';
-      const executeCode = new Function('box', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', 'Status', `
+      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', `
         with (env) {
           ${libraryCode}
           ${code}
@@ -355,10 +403,11 @@ function App() {
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userStatus, userWall, userButton, fakeConsole, env, Box, Button, Status);
+      executeCode(userBox, userCreeper, userStatus, userWall, userButton, fakeConsole, env, Box, Button, Status, Creeper);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
+      setCreeperState(userCreeper);
       
       // Check if they won the scenario
       if (scenario.checkWin(userBox, { ...scenario.environment }, logs, userStatus, userWall, currentExtraBoxes)) {
@@ -623,8 +672,8 @@ function App() {
                     </div>
                   )}
                   {boxState.nose && <div className="nose"></div>}
-                  {boxState.smile && (
-                    <div className="smile">
+                  {boxState.mouth && (
+                    <div className="mouth">
                       <div className="teeth"></div>
                       <div className="tongue"></div>
                     </div>
@@ -686,11 +735,106 @@ function App() {
                       </div>
                     )}
                     {ebox.nose && <div className="nose"></div>}
-                    {ebox.smile && (
-                      <div className="smile">
+                    {ebox.mouth && (
+                      <div className="mouth">
                         <div className="teeth"></div>
                         <div className="tongue"></div>
                       </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              <div 
+                className="magic-creeper"
+                onClick={() => creeperState.onClick && typeof creeperState.onClick === 'function' && creeperState.onClick()}
+                style={{
+                  display: creeperState.visible !== false ? 'flex' : 'none',
+                  backgroundColor: creeperState.color,
+                  width: `${creeperState.width}px`,
+                  height: `${creeperState.height}px`,
+                  transform: `translate(${creeperState.x || 0}px, ${creeperState.y || 0}px) rotate(${creeperState.angle || 0}deg)`,
+                  border: creeperState.borders ? `${creeperState.borders}px solid #2D3436` : 'none',
+                  cursor: creeperState.onClick ? 'pointer' : 'default'
+                }}
+              >
+                {creeperState.text && (
+                  <div style={{ position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)', background: 'white', padding: '5px 10px', borderRadius: '10px', border: '2px solid #2D3436', fontWeight: 'bold', color: '#2D3436', whiteSpace: 'nowrap', zIndex: 10 }}>
+                    {creeperState.text}
+                    <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #2D3436' }}></div>
+                    <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
+                  </div>
+                )}
+                {creeperState.hands && <div className="creeper-hand left"></div>}
+                {creeperState.hands && <div className="creeper-hand right"></div>}
+                {creeperState.legs && (
+                  <>
+                    <div className="creeper-leg left"></div>
+                    <div className="creeper-leg middle"></div>
+                    <div className="creeper-leg right"></div>
+                  </>
+                )}
+                <div className="creeper-face-container">
+                  {creeperState.eyes && (
+                    <>
+                      <div className="creeper-eye left"></div>
+                      <div className="creeper-eye right"></div>
+                    </>
+                  )}
+                  {creeperState.mouth && (
+                    <>
+                      <div className="creeper-mouth-center"></div>
+                      <div className="creeper-mouth-left"></div>
+                      <div className="creeper-mouth-right"></div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {extraCreepers.map((ecreeper) => (
+                <div 
+                  key={ecreeper.id}
+                  className="magic-creeper"
+                  onClick={() => ecreeper.onClick && typeof ecreeper.onClick === 'function' && ecreeper.onClick()}
+                  style={{
+                    display: ecreeper.visible !== false ? 'flex' : 'none',
+                    backgroundColor: ecreeper.color,
+                    width: `${ecreeper.width}px`,
+                    height: `${ecreeper.height}px`,
+                    transform: `translate(${ecreeper.x || 0}px, ${ecreeper.y || 0}px) rotate(${ecreeper.angle || 0}deg)`,
+                    border: ecreeper.borders ? `${ecreeper.borders}px solid #2D3436` : 'none',
+                    cursor: ecreeper.onClick ? 'pointer' : 'default'
+                  }}
+                >
+                  {ecreeper.text && (
+                    <div style={{ position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)', background: 'white', padding: '5px 10px', borderRadius: '10px', border: '2px solid #2D3436', fontWeight: 'bold', color: '#2D3436', whiteSpace: 'nowrap', zIndex: 10 }}>
+                      {ecreeper.text}
+                      <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #2D3436' }}></div>
+                      <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
+                    </div>
+                  )}
+                  {ecreeper.hands && <div className="creeper-hand left"></div>}
+                  {ecreeper.hands && <div className="creeper-hand right"></div>}
+                  {ecreeper.legs && (
+                    <>
+                      <div className="creeper-leg left"></div>
+                      <div className="creeper-leg middle"></div>
+                      <div className="creeper-leg right"></div>
+                    </>
+                  )}
+                  <div className="creeper-face-container">
+                    {ecreeper.eyes && (
+                      <>
+                        <div className="creeper-eye left"></div>
+                        <div className="creeper-eye right"></div>
+                      </>
+                    )}
+                    {ecreeper.mouth && (
+                      <>
+                        <div className="creeper-mouth-center"></div>
+                        <div className="creeper-mouth-left"></div>
+                        <div className="creeper-mouth-right"></div>
+                      </>
                     )}
                   </div>
                 </div>
