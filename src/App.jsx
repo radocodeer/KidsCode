@@ -44,16 +44,31 @@ const getCreeperPixelStyle = (shade, state, rowIndex) => {
   };
 };
 
+const FACTORY_DEFAULT_BOX = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
+const FACTORY_DEFAULT_STATUS = { text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350 };
+const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
+const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
+const FACTORY_DEFAULT_CREEPER = { color: '#27ae60', width: 100, height: 200, x: -250, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
+
 function App() {
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
   const scenario = SCENARIOS[currentScenarioIndex];
   
   const [code, setCode] = useState(scenario.initialCode);
-  const defaultBox = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
-  const defaultStatus = { text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: 0 };
-  const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
-  const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: true, onClick: null };
-  const defaultCreeper = { color: '#27ae60', width: 100, height: 200, x: -200, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
+  
+  const [defaults, setDefaults] = useState({
+    box: { ...FACTORY_DEFAULT_BOX },
+    status: { ...FACTORY_DEFAULT_STATUS },
+    wall: { ...FACTORY_DEFAULT_WALL },
+    button: { ...FACTORY_DEFAULT_BUTTON },
+    creeper: { ...FACTORY_DEFAULT_CREEPER }
+  });
+  
+  const defaultBox = defaults.box;
+  const defaultStatus = defaults.status;
+  const defaultWall = defaults.wall;
+  const defaultButton = defaults.button;
+  const defaultCreeper = defaults.creeper;
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
@@ -74,10 +89,42 @@ function App() {
   const monaco = useMonaco();
   const libDisposableRef = useRef(null);
 
+  const applyDefaults = (files) => {
+    const box = { ...FACTORY_DEFAULT_BOX };
+    const status = { ...FACTORY_DEFAULT_STATUS };
+    const wall = { ...FACTORY_DEFAULT_WALL };
+    const button = { ...FACTORY_DEFAULT_BUTTON };
+    const creeper = { ...FACTORY_DEFAULT_CREEPER };
+    
+    if (files && files['FirstScan'] && files['FirstScan'].trim() !== '') {
+        try {
+            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', files['FirstScan']);
+            initFn(box, status, wall, button, creeper);
+        } catch (e) {
+            console.error("FirstScan Error:", e);
+        }
+    }
+    
+    setDefaults({ box, status, wall, button, creeper });
+    setBoxState({ ...box });
+    setStatusState({ ...status });
+    setWallState({ ...wall });
+    setButtonState({ ...button });
+    setCreeperState({ ...creeper });
+    setExtraBoxes([]);
+    setExtraButtons([]);
+    setExtraStatuses([]);
+    setExtraCreepers([]);
+  };
+
   useEffect(() => {
     fetch('/api/load')
       .then(res => res.json())
-      .then(data => setSavedFiles(data || {}))
+      .then(data => {
+        const files = data || {};
+        setSavedFiles(files);
+        applyDefaults(files);
+      })
       .catch(err => console.error("Failed to load saved codes", err));
   }, []);
 
@@ -614,9 +661,9 @@ function App() {
                 style={{
                   display: statusState.visible !== false ? 'block' : 'none',
                   position: 'absolute',
-                  top: `${20 + (statusState.y || 0)}px`,
-                  left: `calc(50% + ${statusState.x || 0}px)`,
-                  transform: 'translateX(-50%)',
+                  top: '50%',
+                  left: '50%',
+                  transform: `translate(calc(-50% + ${statusState.x || 0}px), calc(-50% + ${statusState.y || 0}px))`,
                   backgroundColor: statusState.color,
                   border: statusState.borders ? `${statusState.borders}px solid #2D3436` : 'none',
                   padding: statusState.text ? '10px 20px' : '0',
@@ -640,9 +687,9 @@ function App() {
                   style={{
                     display: estatus.visible !== false ? 'block' : 'none',
                     position: 'absolute',
-                    top: `${20 + (estatus.y || 0)}px`,
-                    left: `calc(50% + ${estatus.x || 0}px)`,
-                    transform: 'translateX(-50%)',
+                    top: '50%',
+                    left: '50%',
+                    transform: `translate(calc(-50% + ${estatus.x || 0}px), calc(-50% + ${estatus.y || 0}px))`,
                     backgroundColor: estatus.color,
                     border: estatus.borders ? `${estatus.borders}px solid #2D3436` : 'none',
                     padding: estatus.text ? '10px 20px' : '0',
@@ -668,9 +715,11 @@ function App() {
                   backgroundColor: boxState.color,
                   width: `${boxState.width}px`,
                   height: `${boxState.height}px`,
-                  transform: `translate(${boxState.x || 0}px, ${boxState.y || 0}px) rotate(${boxState.angle || 0}deg)`,
+                  transform: `translate(calc(-50% + ${boxState.x || 0}px), calc(-50% + ${boxState.y || 0}px)) rotate(${boxState.angle || 0}deg)`,
                   border: boxState.borders ? `${boxState.borders}px solid #2D3436` : 'none',
-                  position: 'relative',
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
                   cursor: boxState.onClick ? 'pointer' : 'default'
                 }}
               >
@@ -731,9 +780,11 @@ function App() {
                     backgroundColor: ebox.color,
                     width: `${ebox.width}px`,
                     height: `${ebox.height}px`,
-                    transform: `translate(${ebox.x || 0}px, ${ebox.y || 0}px) rotate(${ebox.angle || 0}deg)`,
+                    transform: `translate(calc(-50% + ${ebox.x || 0}px), calc(-50% + ${ebox.y || 0}px)) rotate(${ebox.angle || 0}deg)`,
                     border: ebox.borders ? `${ebox.borders}px solid #2D3436` : 'none',
                     position: 'absolute',
+                    top: '50%',
+                    left: '50%',
                     cursor: ebox.onClick ? 'pointer' : 'default'
                   }}
                 >
@@ -792,9 +843,11 @@ function App() {
                   display: creeperState.visible !== false ? 'grid' : 'none',
                   width: `${creeperState.width}px`,
                   height: `${creeperState.height}px`,
-                  transform: `translate(${creeperState.x || 0}px, ${creeperState.y || 0}px) rotate(${creeperState.angle || 0}deg)`,
+                  transform: `translate(calc(-50% + ${creeperState.x || 0}px), calc(-50% + ${creeperState.y || 0}px)) rotate(${creeperState.angle || 0}deg)`,
                   border: creeperState.borders ? `${creeperState.borders}px solid #2D3436` : 'none',
-                  cursor: creeperState.onClick ? 'pointer' : 'default'
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
                 }}
               >
                 {creeperState.text && (
@@ -818,9 +871,11 @@ function App() {
                     display: ecreeper.visible !== false ? 'grid' : 'none',
                     width: `${ecreeper.width}px`,
                     height: `${ecreeper.height}px`,
-                    transform: `translate(${ecreeper.x || 0}px, ${ecreeper.y || 0}px) rotate(${ecreeper.angle || 0}deg)`,
+                    transform: `translate(calc(-50% + ${ecreeper.x || 0}px), calc(-50% + ${ecreeper.y || 0}px)) rotate(${ecreeper.angle || 0}deg)`,
                     border: ecreeper.borders ? `${ecreeper.borders}px solid #2D3436` : 'none',
-                    cursor: ecreeper.onClick ? 'pointer' : 'default'
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
                   }}
                 >
                   {ecreeper.text && (
@@ -846,9 +901,11 @@ function App() {
                   backgroundColor: buttonState.color,
                   width: `${buttonState.width}px`,
                   height: `${buttonState.height}px`,
-                  transform: `translate(${buttonState.x || 0}px, ${buttonState.y || 0}px)`,
+                  transform: `translate(calc(-50% + ${buttonState.x || 0}px), calc(-50% + ${buttonState.y || 0}px))`,
                   border: buttonState.borders ? `${buttonState.borders}px solid #2D3436` : 'none',
                   position: 'absolute',
+                  top: '50%',
+                  left: '50%',
                   cursor: buttonState.onClick ? 'pointer' : 'default',
                   borderRadius: '20px',
                   fontWeight: 'bold',
@@ -872,9 +929,11 @@ function App() {
                     backgroundColor: ebtn.color,
                     width: `${ebtn.width}px`,
                     height: `${ebtn.height}px`,
-                    transform: `translate(${ebtn.x || 0}px, ${ebtn.y || 0}px)`,
+                    transform: `translate(calc(-50% + ${ebtn.x || 0}px), calc(-50% + ${ebtn.y || 0}px))`,
                     border: ebtn.borders ? `${ebtn.borders}px solid #2D3436` : 'none',
                     position: 'absolute',
+                    top: '50%',
+                    left: '50%',
                     cursor: ebtn.onClick ? 'pointer' : 'default',
                     borderRadius: '20px',
                     fontWeight: 'bold',
