@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save } from 'lucide-react';
-import Editor from '@monaco-editor/react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
 
@@ -28,6 +28,8 @@ function App() {
   
   const [saveName, setSaveName] = useState('');
   const [savedFiles, setSavedFiles] = useState({});
+  const monaco = useMonaco();
+  const libDisposableRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/load')
@@ -35,6 +37,32 @@ function App() {
       .then(data => setSavedFiles(data || {}))
       .catch(err => console.error("Failed to load saved codes", err));
   }, []);
+
+  useEffect(() => {
+    if (monaco && savedFiles['Library']) {
+      const libraryCode = savedFiles['Library'];
+      const regex = /function\s+([a-zA-Z_$][0-9a-zA-Z_$]*)\s*\(([^)]*)\)/g;
+      let typings = '';
+      let match;
+      while ((match = regex.exec(libraryCode)) !== null) {
+        const name = match[1];
+        const args = match[2].split(',').map(a => a.trim()).filter(a => a).map(a => `${a}: any`).join(', ');
+        typings += `declare function ${name}(${args}): any;\n`;
+      }
+      
+      if (libDisposableRef.current) {
+        libDisposableRef.current.dispose();
+      }
+      libDisposableRef.current = monaco.languages.typescript.javascriptDefaults.addExtraLib(typings, 'filename/dynamic-library.d.ts');
+    }
+    
+    return () => {
+      if (libDisposableRef.current) {
+        libDisposableRef.current.dispose();
+        libDisposableRef.current = null;
+      }
+    };
+  }, [monaco, savedFiles['Library']]);
 
   // Update code when scenario changes
   useEffect(() => {
@@ -124,11 +152,37 @@ function App() {
   };
 
   const handleLoadCode = (name) => {
-    if (savedFiles[name]) {
-      setCode(savedFiles[name]);
-      setSaveName(name);
-      setLogs(prev => [...prev, `📂 Loaded '${name}'!`]);
-    }
+    const currentName = saveName.trim() || 'AutoSave';
+    
+    // Auto-save the current code first
+    fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: currentName, code })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        setSavedFiles(data.files);
+        
+        // After auto-saving, load the new code
+        const codeToLoad = data.files[name] !== undefined ? data.files[name] : savedFiles[name];
+        if (codeToLoad !== undefined) {
+          setCode(codeToLoad);
+          setSaveName(name);
+          setLogs(prev => [...prev, `💾 Auto-saved as '${currentName}'!`, `📂 Loaded '${name}'!`]);
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Auto-save failed before loading", err);
+      // Even if auto-save fails, we should still try to load the file
+      if (savedFiles[name]) {
+        setCode(savedFiles[name]);
+        setSaveName(name);
+        setLogs(prev => [...prev, "❌ Error auto-saving!", `📂 Loaded '${name}'!`]);
+      }
+    });
   };
 
   const handleRunCode = () => {
@@ -292,8 +346,10 @@ function App() {
       
       // We create a safe execution context using 'with' to allow variable shadowing
       // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
+      const libraryCode = (savedFiles['Library'] && saveName !== 'Library') ? savedFiles['Library'] : '';
       const executeCode = new Function('box', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', 'Status', `
         with (env) {
+          ${libraryCode}
           ${code}
         }
       `);
@@ -697,20 +753,7 @@ function App() {
               <div className="console-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>🖥️ Output</span>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    className="reset-btn"
-                    onClick={() => window.location.href = '/DutchGame'}
-                    style={{ backgroundColor: '#2a2a4a', borderColor: '#4ECDC4', color: '#4ECDC4' }}
-                  >
-                    🛠️ Dutch GAME
-                  </button>
-                  <button 
-                    className="reset-btn"
-                    onClick={() => window.location.href = '/test'}
-                    style={{ backgroundColor: '#2a2a4a', borderColor: '#4ECDC4', color: '#4ECDC4' }}
-                  >
-                    🛠️ TEST UI
-                  </button>
+
                   <button 
                     className="reset-btn"
                     onClick={handleReset} 
