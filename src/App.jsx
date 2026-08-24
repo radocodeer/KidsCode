@@ -4,6 +4,46 @@ import Editor, { useMonaco } from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
 
+const CREEPER_TEXTURE = [
+  "D D B B B B D D",
+  "D VD D VL VL B B D",
+  "B E E B B E E B",
+  "B E E B B E E B",
+  "B B B M M B VL B",
+  "B B M M M M B B",
+  "B B M M M M B B",
+  "D D M B B M D D",
+  "D D B B B B D D",
+  "B B L D B B B D",
+  "B B L B D B B B",
+  "B B L D D VL B D",
+  "D D B GAP GAP B D D",
+  "D D L GAP GAP L D D",
+  "VD D D GAP GAP D VD VD",
+  "VD VD VD GAP GAP VD VD VD"
+].join(" ").split(" ");
+
+const getCreeperPixelStyle = (shade, state, rowIndex) => {
+  if (!state.legs && rowIndex >= 12) return { backgroundColor: 'transparent' };
+  if (shade === 'GAP') return { backgroundColor: 'transparent' };
+  
+  if (shade === 'E' && !state.eyes) shade = 'B';
+  if (shade === 'M' && !state.mouth) shade = 'B';
+  
+  if (shade === 'E' || shade === 'M') return { backgroundColor: '#111' };
+  
+  let overlay = 'rgba(0,0,0,0)';
+  if (shade === 'VL') overlay = 'rgba(255,255,255,0.4)';
+  if (shade === 'L') overlay = 'rgba(255,255,255,0.2)';
+  if (shade === 'D') overlay = 'rgba(0,0,0,0.2)';
+  if (shade === 'VD') overlay = 'rgba(0,0,0,0.4)';
+  
+  return {
+    backgroundColor: state.color,
+    backgroundImage: `linear-gradient(${overlay}, ${overlay})`
+  };
+};
+
 function App() {
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
   const scenario = SCENARIOS[currentScenarioIndex];
@@ -13,7 +53,7 @@ function App() {
   const defaultStatus = { text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: 0 };
   const defaultWall = { color: '#E8F8F5', borders: 0, visible: true };
   const defaultButton = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -450, y: 0, borders: 0, visible: true, onClick: null };
-  const defaultCreeper = { color: '#27ae60', width: 100, height: 180, x: -200, y: 0, eyes: true, mouth: true, legs: true, hands: false, angle: 0, borders: 0, visible: true, text: '', onClick: null };
+  const defaultCreeper = { color: '#27ae60', width: 100, height: 200, x: -200, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
@@ -116,14 +156,14 @@ function App() {
       declare var creeper: {
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; mouth: boolean; hands: boolean; legs: boolean; visible: boolean;
+        eyes: boolean; mouth: boolean; legs: boolean; visible: boolean;
         text: string; onClick: Function;
       };
       declare class Creeper {
         constructor();
         color: string; width: number; height: number;
         x: number; y: number; angle: number; borders: number;
-        eyes: boolean; mouth: boolean; hands: boolean; legs: boolean; visible: boolean;
+        eyes: boolean; mouth: boolean; legs: boolean; visible: boolean;
         text: string; onClick: Function;
       }
       declare var button: { text: string; color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onClick: Function; };
@@ -749,8 +789,7 @@ function App() {
                 className="magic-creeper"
                 onClick={() => creeperState.onClick && typeof creeperState.onClick === 'function' && creeperState.onClick()}
                 style={{
-                  display: creeperState.visible !== false ? 'flex' : 'none',
-                  backgroundColor: creeperState.color,
+                  display: creeperState.visible !== false ? 'grid' : 'none',
                   width: `${creeperState.width}px`,
                   height: `${creeperState.height}px`,
                   transform: `translate(${creeperState.x || 0}px, ${creeperState.y || 0}px) rotate(${creeperState.angle || 0}deg)`,
@@ -765,30 +804,9 @@ function App() {
                     <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
                   </div>
                 )}
-                {creeperState.hands && <div className="creeper-hand left"></div>}
-                {creeperState.hands && <div className="creeper-hand right"></div>}
-                {creeperState.legs && (
-                  <>
-                    <div className="creeper-leg left"></div>
-                    <div className="creeper-leg middle"></div>
-                    <div className="creeper-leg right"></div>
-                  </>
-                )}
-                <div className="creeper-face-container">
-                  {creeperState.eyes && (
-                    <>
-                      <div className="creeper-eye left"></div>
-                      <div className="creeper-eye right"></div>
-                    </>
-                  )}
-                  {creeperState.mouth && (
-                    <>
-                      <div className="creeper-mouth-center"></div>
-                      <div className="creeper-mouth-left"></div>
-                      <div className="creeper-mouth-right"></div>
-                    </>
-                  )}
-                </div>
+                {CREEPER_TEXTURE.map((shade, i) => (
+                  <div key={i} className="creeper-pixel" style={getCreeperPixelStyle(shade, creeperState, Math.floor(i / 8))} />
+                ))}
               </div>
 
               {extraCreepers.map((ecreeper) => (
@@ -797,8 +815,7 @@ function App() {
                   className="magic-creeper"
                   onClick={() => ecreeper.onClick && typeof ecreeper.onClick === 'function' && ecreeper.onClick()}
                   style={{
-                    display: ecreeper.visible !== false ? 'flex' : 'none',
-                    backgroundColor: ecreeper.color,
+                    display: ecreeper.visible !== false ? 'grid' : 'none',
                     width: `${ecreeper.width}px`,
                     height: `${ecreeper.height}px`,
                     transform: `translate(${ecreeper.x || 0}px, ${ecreeper.y || 0}px) rotate(${ecreeper.angle || 0}deg)`,
@@ -813,30 +830,9 @@ function App() {
                       <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid white' }}></div>
                     </div>
                   )}
-                  {ecreeper.hands && <div className="creeper-hand left"></div>}
-                  {ecreeper.hands && <div className="creeper-hand right"></div>}
-                  {ecreeper.legs && (
-                    <>
-                      <div className="creeper-leg left"></div>
-                      <div className="creeper-leg middle"></div>
-                      <div className="creeper-leg right"></div>
-                    </>
-                  )}
-                  <div className="creeper-face-container">
-                    {ecreeper.eyes && (
-                      <>
-                        <div className="creeper-eye left"></div>
-                        <div className="creeper-eye right"></div>
-                      </>
-                    )}
-                    {ecreeper.mouth && (
-                      <>
-                        <div className="creeper-mouth-center"></div>
-                        <div className="creeper-mouth-left"></div>
-                        <div className="creeper-mouth-right"></div>
-                      </>
-                    )}
-                  </div>
+                  {CREEPER_TEXTURE.map((shade, i) => (
+                    <div key={i} className="creeper-pixel" style={getCreeperPixelStyle(shade, ecreeper, Math.floor(i / 8))} />
+                  ))}
                 </div>
               ))}
 
