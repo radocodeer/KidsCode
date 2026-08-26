@@ -314,6 +314,7 @@ function App() {
   const handleSaveCode = () => {
     if (!saveName.trim()) {
       setLogs(prev => [...prev, "❌ Please enter a name first! (e.g. RadkoCode)"]);
+      setFancyLogs(prev => [...prev, ["❌ Zadaj najprv meno pre tvoj kód!"]]);
       return;
     }
     
@@ -327,11 +328,13 @@ function App() {
       if (data.success) {
         setSavedFiles(data.files);
         setLogs(prev => [...prev, `💾 Code saved to C:\\Code_R\\KidsCode\\src\\SavedCode\\${profile}\\savedCode.json as '${saveName}'!`]);
+        setFancyLogs(prev => [...prev, ["💾 Kód bol úspešne uložený ako:", saveName]]);
       }
     })
     .catch(err => {
       console.error(err);
       setLogs(prev => [...prev, "❌ Error saving code!"]);
+      setFancyLogs(prev => [...prev, ["❌ Nastala chyba pri ukladaní kódu!"]]);
     });
   };
 
@@ -344,6 +347,7 @@ function App() {
         setCode(codeToLoad);
         setSaveName(name);
         setLogs(prev => [...prev, `📂 Loaded '${name}'!`]);
+        setFancyLogs(prev => [...prev, ["📂 Úspešne načítaný kód:", name]]);
       }
     };
     
@@ -359,12 +363,14 @@ function App() {
         if (data.success) {
           setSavedFiles(data.files);
           setLogs(prev => [...prev, `💾 Auto-saved as '${currentName}'!`]);
+          setFancyLogs(prev => [...prev, ["💾 Tvoj starý kód sa automaticky uložil ako:", currentName]]);
           loadCodeAfterSave(data.files);
         }
       })
       .catch(err => {
         console.error("Auto-save failed before loading", err);
         setLogs(prev => [...prev, "❌ Error auto-saving!"]);
+        setFancyLogs(prev => [...prev, ["❌ Nastala chyba pri automatickom ukladaní!"]]);
         loadCodeAfterSave(savedFiles);
       });
     } else {
