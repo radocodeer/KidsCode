@@ -645,7 +645,7 @@ function App() {
         <h1 style={{ display: 'flex', alignItems: 'center' }}>
           <Sparkles fill="#FF6B6B" color="#FF6B6B" /> Kids JS Magic ({profile})
           <button 
-            onClick={() => { setProfile(null); setCode(''); }} 
+            onClick={() => { setProfile(null); setCode(''); setSaveName(''); }} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px',
               marginLeft: '20px', padding: '8px 16px', borderRadius: '12px', 
