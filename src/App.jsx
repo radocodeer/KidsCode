@@ -49,7 +49,7 @@ const getCreeperPixelStyle = (shade, state, rowIndex) => {
 const FACTORY_DEFAULT_BOX = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_STATUS = { 
   _text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, width: 0, height: 0, _rawText: null,
-  Text: function(...args) { this._text = args; }
+  text: function(...args) { this._text = args; }
 };
 
 const renderFancyStatus = (statusObj) => {
@@ -286,11 +286,11 @@ function App() {
         onClick: Function;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
-      declare var status: { color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; Text(...args: any[]): void; };
+      declare var status: { color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; text(...args: any[]): void; };
       declare class Status {
         constructor();
         color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number;
-        Text(...args: any[]): void;
+        text(...args: any[]): void;
       }
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
@@ -431,6 +431,7 @@ function App() {
           
           const statusProxy = new Proxy(initialStatus, {
             set: (target, prop, value) => {
+              if (prop === 'text') throw new Error(`Zabudol si zátvorky! Použi: status.text("tvoj text") namiesto znaku =`);
               if (!(prop in defaultStatus) && prop !== 'id' && prop !== '_rawText') throw new Error(`Oops! Status does not have a property named '${String(prop)}'`);
               if (prop === '_text' && Array.isArray(value)) {
                 target['_rawText'] = value;
@@ -507,6 +508,7 @@ function App() {
       
       const userStatus = new Proxy({ ...defaultStatus, ...statusState }, {
         set: (target, prop, value) => {
+          if (prop === 'text') throw new Error(`Zabudol si zátvorky! Použi: status.text("tvoj text") namiesto znaku =`);
           if (!(prop in defaultStatus) && prop !== '_rawText') throw new Error(`Oops! 'status' does not have a property named '${String(prop)}'`);
           if (prop === '_text' && Array.isArray(value)) {
             target['_rawText'] = value;
