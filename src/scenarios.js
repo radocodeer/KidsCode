@@ -178,43 +178,43 @@ export const SCENARIOS = [
   // --- PART 5: BOOLEANS & BODY PARTS (21-25) ---
   {
     id: 21,
-    title: 'Level 21: Ahoj konzola!',
-    description: 'Vypíš "Hello!" do konzoly.',
+    title: 'Level 21: Ahoj konzola! (Spoj slovo a farbu)',
+    description: 'Vypíš do konzoly text spojený s vlastnosťou: console.log("Farba je " + box.color);',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box, env, logs) => logs && logs.includes('Hello!')
+    checkWin: (box, env, logs) => logs && logs.some(l => l.includes('Farba je ') && l.includes(box.color))
   },
   {
     id: 22,
-    title: 'Level 22: Pravda alebo Lož (Úsmev)',
-    description: 'Hodnoty (Booleans) môžu byť "true" (pravda) alebo "false" (lož). Nastav box.smile na true!',
+    title: 'Level 22: Pravda alebo Lož (Ústa)',
+    description: 'Hodnoty (Booleans) môžu byť "true" (pravda) alebo "false" (lož). Nastav box.mouth na true a vypíš "Smile!" do konzoly!',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box) => box.smile === true
+    checkWin: (box, env, logs) => box.mouth === true && logs && logs.includes('Smile!')
   },
   {
     id: 23,
     title: 'Level 23: Pridaj ruky!',
-    description: 'Zapni ruky! Nastav box.hands na true.',
+    description: 'Zapni ruky (box.hands = true) a vypíš spojený text: console.log("Ruky sú " + box.hands);',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box) => box.hands === true
+    checkWin: (box, env, logs) => box.hands === true && logs && logs.some(l => l.includes('Ruky sú true'))
   },
   {
     id: 24,
     title: 'Level 24: Celé telo',
-    description: 'Pridaj krabici nohy a nos! Nastav ich oboje na true.',
+    description: 'Pridaj krabici nohy a nos! Nastav ich oboje na true a zmeň status.text na "Monster".',
     initialCode: "",
     environment: { isRaining: false, isSunny: false, isNight: true },
-    checkWin: (box) => box.legs === true && box.nose === true
+    checkWin: (box, env, logs, status) => box.legs === true && box.nose === true && status && status.text === 'Monster'
   },
   {
     id: 25,
     title: 'Level 25: Zatvor oči',
-    description: 'Môžeš veci aj vypnúť! Nastav box.eyes na false.',
+    description: 'Môžeš veci aj vypnúť! Nastav box.eyes na false a zmeň status: status.text = "Oči: " + box.eyes;',
     initialCode: "",
     environment: { isRaining: false, isSunny: true, isNight: false },
-    checkWin: (box) => box.eyes === false
+    checkWin: (box, env, logs, status) => box.eyes === false && status && status.text === 'Oči: false'
   },
 
   // --- PART 6: IF STATEMENTS (26-30) ---
@@ -229,26 +229,26 @@ export const SCENARIOS = [
   {
     id: 27,
     title: 'Level 27: Nočný režim',
-    description: 'Ak je noc (isNight), zmeň farbu steny na čiernu a status.text na "Spooky!" (Strašidelné!)',
+    description: 'Ak je noc (isNight), zmeň farbu steny na čiernu a status.text na "Noc je " + isNight.',
     initialCode: "",
     environment: { isRaining: false, isSunny: false, isNight: true },
-    checkWin: (box, env, logs, status, wall) => wall && wall.color === 'black' && status && status.text === 'Spooky!'
+    checkWin: (box, env, logs, status, wall) => wall && wall.color === 'black' && status && status.text === 'Noc je true'
   },
   {
     id: 28,
     title: 'Level 28: Smútok v daždi',
-    description: 'Ak prší (isRaining), vypni úsmev (nastav box.smile na false).',
+    description: 'Ak prší (isRaining), vypni ústa (nastav box.mouth na false).',
     initialCode: "",
     environment: { isRaining: true, isSunny: false, isNight: false },
-    checkWin: (box) => box.smile === false
+    checkWin: (box) => box.mouth === false
   },
   {
     id: 29,
     title: 'Level 29: Veľký, ak je slnečno',
-    description: 'Ak je slnečno (isSunny), nastav šírku (width) na 200.',
+    description: 'Ak je slnečno (isSunny), nastav šírku (width) na 200 a vypíš "Hot!" do konzoly.',
     initialCode: "",
     environment: { isRaining: false, isSunny: true, isNight: false },
-    checkWin: (box) => box.width === 200
+    checkWin: (box, env, logs) => box.width === 200 && logs && logs.includes('Hot!')
   },
   {
     id: 30,
@@ -287,10 +287,10 @@ export const SCENARIOS = [
   {
     id: 34,
     title: 'Level 34: Logické A (&&)',
-    description: 'Ak prší (isRaining) A je noc (isNight), pridaj ruky. (Napíš: isRaining && isNight)',
+    description: 'Ak prší (isRaining) A je noc (isNight), pridaj ruky a zmeň status.text na "Cold!". (Napíš: isRaining && isNight)',
     initialCode: "",
     environment: { isRaining: true, isSunny: false, isNight: true },
-    checkWin: (box) => box.hands === true
+    checkWin: (box, env, logs, status) => box.hands === true && status && status.text === 'Cold!'
   },
   {
     id: 35,
@@ -312,11 +312,11 @@ export const SCENARIOS = [
   },
   {
     id: 37,
-    title: 'Level 37: Moja správa',
-    description: 'Vytvor: let msg = "Winner!"; a potom nastav status.text na msg.',
+    title: 'Level 37: Spájanie slov (Text + Premenná)',
+    description: 'Vytvor premennú: let meno = "Radko"; a nastav status.text na "Ahoj " + meno.',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box, env, logs, status) => status && status.text === 'Winner!'
+    checkWin: (box, env, logs, status) => status && typeof status.text === 'string' && status.text.startsWith('Ahoj ') && status.text.length > 5
   },
   {
     id: 38,
@@ -336,11 +336,11 @@ export const SCENARIOS = [
   },
   {
     id: 40,
-    title: 'Level 40: Vlastná nálada',
-    description: 'Vytvor premennú let isHappy = true; Vypíš ju do konzoly!',
+    title: 'Level 40: Konzola a premenné',
+    description: 'Vytvor premennú: let vek = 10; Vypíš do konzoly spojený text: console.log("Mám " + vek + " rokov");',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box, env, logs) => logs && logs.includes('true')
+    checkWin: (box, env, logs) => logs && logs.some(l => l.includes('Mám ') && l.includes(' rokov'))
   },
 
   // --- PART 9: WHILE LOOPS (41-45) ---

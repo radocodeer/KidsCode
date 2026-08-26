@@ -1,0 +1,3 @@
+{
+  "maminkaCode": "let previousText = ioField.text;\r\nlet lastText = '';\r\nconsole.log(previousText);\r\n\r\nioField.onClick = function () {\r\n    if (ioField.text != '') {\r\n        console.log(ioField.text);   \r\n        if (ioField.text != previousText) {\r\n            lastText = previousText;\r\n            status.text = previousText;\r\n        }     \r\n    }\r\n} \r\n\r\n"
+}

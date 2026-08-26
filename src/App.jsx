@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save, UserCircle, Box } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
+
+const PROFILES = ['Tatino', 'Maminka', 'Radko', 'Filipko', 'Ninka', ];
 
 const CREEPER_TEXTURE = [
   "D D B B B B D D",
@@ -49,8 +51,10 @@ const FACTORY_DEFAULT_STATUS = { text: 'status', color: 'transparent', borders: 
 const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
 const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
 const FACTORY_DEFAULT_CREEPER = { color: '#27ae60', width: 100, height: 200, x: -250, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
+const FACTORY_DEFAULT_IOFIELD = { text: '', color: '#4ECDC4', width: 250, height: 40, x: 0, y: 150, borders: 0, visible: true, onClick: null };
 
 function App() {
+  const [profile, setProfile] = useState(null);
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
   const scenario = SCENARIOS[currentScenarioIndex];
   
@@ -61,7 +65,8 @@ function App() {
     status: { ...FACTORY_DEFAULT_STATUS },
     wall: { ...FACTORY_DEFAULT_WALL },
     button: { ...FACTORY_DEFAULT_BUTTON },
-    creeper: { ...FACTORY_DEFAULT_CREEPER }
+    creeper: { ...FACTORY_DEFAULT_CREEPER },
+    ioField: { ...FACTORY_DEFAULT_IOFIELD }
   });
   
   const defaultBox = defaults.box;
@@ -69,12 +74,15 @@ function App() {
   const defaultWall = defaults.wall;
   const defaultButton = defaults.button;
   const defaultCreeper = defaults.creeper;
+  const defaultIoField = defaults.ioField;
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
   const [wallState, setWallState] = useState(defaultWall);
   const [buttonState, setButtonState] = useState(defaultButton);
   const [creeperState, setCreeperState] = useState(defaultCreeper);
+  const [ioFieldState, setIoFieldState] = useState(defaultIoField);
+  const currentIoFieldTextRef = useRef('');
   const [extraBoxes, setExtraBoxes] = useState([]);
   const [extraButtons, setExtraButtons] = useState([]);
   const [extraStatuses, setExtraStatuses] = useState([]);
@@ -95,22 +103,25 @@ function App() {
     const wall = { ...FACTORY_DEFAULT_WALL };
     const button = { ...FACTORY_DEFAULT_BUTTON };
     const creeper = { ...FACTORY_DEFAULT_CREEPER };
+    const ioField = { ...FACTORY_DEFAULT_IOFIELD };
     
     if (files && files['FirstScan'] && files['FirstScan'].trim() !== '') {
         try {
-            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', files['FirstScan']);
-            initFn(box, status, wall, button, creeper);
+            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', 'ioField', files['FirstScan']);
+            initFn(box, status, wall, button, creeper, ioField);
         } catch (e) {
             console.error("FirstScan Error:", e);
         }
     }
     
-    setDefaults({ box, status, wall, button, creeper });
+    setDefaults({ box, status, wall, button, creeper, ioField });
     setBoxState({ ...box });
     setStatusState({ ...status });
     setWallState({ ...wall });
     setButtonState({ ...button });
     setCreeperState({ ...creeper });
+    setIoFieldState({ ...ioField });
+    currentIoFieldTextRef.current = ioField.text;
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
@@ -118,15 +129,20 @@ function App() {
   };
 
   useEffect(() => {
-    fetch('/api/load')
+    if (!profile) return;
+    fetch(`/api/load?profile=${profile}`)
       .then(res => res.json())
       .then(data => {
         const files = data || {};
         setSavedFiles(files);
         applyDefaults(files);
+        
+        if (!saveName) {
+           setCode("// Prosím vytvor nový kód, alebo načítaj existujúci z ponuky vyššie!\n");
+        }
       })
       .catch(err => console.error("Failed to load saved codes", err));
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
     if (monaco && savedFiles['Library']) {
@@ -166,6 +182,8 @@ function App() {
     setWallState({ ...defaultWall });
     setButtonState({ ...defaultButton });
     setCreeperState({ ...defaultCreeper });
+    setIoFieldState({ ...defaultIoField });
+    currentIoFieldTextRef.current = defaultIoField.text;
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
@@ -177,11 +195,22 @@ function App() {
     intervalsRef.current = [];
   };
 
+  const handleResetConsole = () => {
+    setLogs([]);
+  };
+
   const handleEditorWillMount = (monaco) => {
     // Provide TypeScript definitions so the editor perfectly autocompletes our Magic World objects!
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: true, // Don't complain about top-level await or missing variables
       noSyntaxValidation: false,
+    });
+    
+    // Exclude DOM lib so 'status' is not treated as the deprecated window.status (which is a string)
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ES2015,
+      allowNonTsExtensions: true,
+      lib: ["es2015"]
     });
     
     monaco.languages.typescript.javascriptDefaults.addExtraLib(`
@@ -220,6 +249,13 @@ function App() {
         x: number; y: number; borders: number; visible: boolean;
         onClick: Function;
       }
+      declare var ioField: { text: string; color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onClick: Function; };
+      declare class IoField {
+        constructor();
+        text: string; color: string; width: number; height: number;
+        x: number; y: number; borders: number; visible: boolean;
+        onClick: Function;
+      }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { text: string; color: string; borders: number; visible: boolean; x: number; y: number; };
       declare class Status {
@@ -229,7 +265,20 @@ function App() {
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
       declare function setTimeout(callback: Function, ms: number): number;
+      declare var console: { log(...args: any[]): void; };
     `, 'filename/facts.d.ts');
+  };
+
+  const handleEditorDidMount = (editor, monaco) => {
+    const forceLayout = () => {
+      monaco.editor.remeasureFonts();
+      editor.layout();
+    };
+    
+    document.fonts.ready.then(forceLayout);
+    // Extra fallbacks in case fonts load slightly after ready event
+    setTimeout(forceLayout, 500);
+    setTimeout(forceLayout, 2000);
   };
 
   const handleSaveCode = () => {
@@ -241,13 +290,13 @@ function App() {
     fetch('/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: saveName, code })
+      body: JSON.stringify({ profile, name: saveName, code })
     })
     .then(res => res.json())
     .then(data => {
       if (data.success) {
         setSavedFiles(data.files);
-        setLogs(prev => [...prev, `💾 Code saved to C:\\Code_R\\KidsCode\\src\\SavedCode\\savedCode.json as '${saveName}'!`]);
+        setLogs(prev => [...prev, `💾 Code saved to C:\\Code_R\\KidsCode\\src\\SavedCode\\${profile}\\savedCode.json as '${saveName}'!`]);
       }
     })
     .catch(err => {
@@ -257,37 +306,40 @@ function App() {
   };
 
   const handleLoadCode = (name) => {
-    const currentName = saveName.trim() || 'AutoSave';
+    const currentName = saveName.trim();
     
-    // Auto-save the current code first
-    fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: currentName, code })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        setSavedFiles(data.files);
-        
-        // After auto-saving, load the new code
-        const codeToLoad = data.files[name] !== undefined ? data.files[name] : savedFiles[name];
-        if (codeToLoad !== undefined) {
-          setCode(codeToLoad);
-          setSaveName(name);
-          setLogs(prev => [...prev, `💾 Auto-saved as '${currentName}'!`, `📂 Loaded '${name}'!`]);
-        }
-      }
-    })
-    .catch(err => {
-      console.error("Auto-save failed before loading", err);
-      // Even if auto-save fails, we should still try to load the file
-      if (savedFiles[name]) {
-        setCode(savedFiles[name]);
+    const loadCodeAfterSave = (files) => {
+      const codeToLoad = files[name] !== undefined ? files[name] : savedFiles[name];
+      if (codeToLoad !== undefined) {
+        setCode(codeToLoad);
         setSaveName(name);
-        setLogs(prev => [...prev, "❌ Error auto-saving!", `📂 Loaded '${name}'!`]);
+        setLogs(prev => [...prev, `📂 Loaded '${name}'!`]);
       }
-    });
+    };
+    
+    if (currentName) {
+      // Auto-save the current code first
+      fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile, name: currentName, code })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSavedFiles(data.files);
+          setLogs(prev => [...prev, `💾 Auto-saved as '${currentName}'!`]);
+          loadCodeAfterSave(data.files);
+        }
+      })
+      .catch(err => {
+        console.error("Auto-save failed before loading", err);
+        setLogs(prev => [...prev, "❌ Error auto-saving!"]);
+        loadCodeAfterSave(savedFiles);
+      });
+    } else {
+      loadCodeAfterSave(savedFiles);
+    }
   };
 
   const handleRunCode = () => {
@@ -380,6 +432,26 @@ function App() {
         }
       }
 
+      const currentExtraIoFields = [];
+      class IoField {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialIo = { ...defaultIoField, id, visible: true };
+          
+          const ioProxy = new Proxy(initialIo, {
+            get: (target, prop) => target[prop], // We don't support typing into extra IoFields for now
+            set: (target, prop, value) => {
+              if (!(prop in defaultIoField) && prop !== 'id') throw new Error(`Oops! IoField does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              // we don't have setExtraIoFields yet, but we will return it.
+              return true;
+            }
+          });
+          currentExtraIoFields.push(ioProxy);
+          return ioProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -438,6 +510,20 @@ function App() {
         }
       });
       
+      const userIoField = new Proxy({ ...defaultIoField, ...ioFieldState }, {
+        get: (target, prop) => {
+          if (prop === 'text') return currentIoFieldTextRef.current;
+          return target[prop];
+        },
+        set: (target, prop, value) => {
+          if (!(prop in defaultIoField)) throw new Error(`Oops! 'ioField' does not have a property named '${String(prop)}'`);
+          if (prop === 'text') currentIoFieldTextRef.current = value;
+          target[prop] = value;
+          setIoFieldState({ ...target });
+          return true;
+        }
+      });
+      
       const fakeConsole = {
         log: (...args) => {
           const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
@@ -456,6 +542,9 @@ function App() {
         ...scenario.environment,
         Box,
         Creeper,
+        Button,
+        Status,
+        IoField,
         setInterval: (cb, ms) => {
           const id = setInterval(() => {
             try { cb(); } catch (e) { 
@@ -482,7 +571,7 @@ function App() {
       // We create a safe execution context using 'with' to allow variable shadowing
       // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
       const libraryCode = (savedFiles['Library'] && saveName !== 'Library') ? savedFiles['Library'] : '';
-      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', `
+      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'ioField', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', 'IoField', `
         with (env) {
           ${libraryCode}
           ${code}
@@ -490,7 +579,7 @@ function App() {
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userCreeper, userStatus, userWall, userButton, fakeConsole, env, Box, Button, Status, Creeper);
+      executeCode(userBox, userCreeper, userStatus, userWall, userButton, userIoField, fakeConsole, env, Box, Button, Status, Creeper, IoField);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -509,47 +598,156 @@ function App() {
     }
   };
 
+  if (!profile) {
+    return (
+      <div className="app-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f5f6fa' }}>
+        <h1 style={{ fontSize: '3rem', marginBottom: '40px', color: '#2D3436' }}>
+          <Sparkles fill="#FF6B6B" color="#FF6B6B" size={48} style={{ verticalAlign: 'middle', marginRight: '15px' }} />
+          Kto sa ide učiť programovať?
+        </h1>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '800px' }}>
+          {PROFILES.map(p => (
+            <button
+              key={p}
+              onClick={() => setProfile(p)}
+              style={{
+                padding: '20px 40px',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                borderRadius: '16px',
+                border: 'none',
+                background: '#4ECDC4',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'transform 0.1s'
+              }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <header className="header">
-        <h1><Sparkles fill="#FF6B6B" color="#FF6B6B" /> Kids JS Magic</h1>
+        <h1 style={{ display: 'flex', alignItems: 'center' }}>
+          <Sparkles fill="#FF6B6B" color="#FF6B6B" /> Kids JS Magic ({profile})
+          <button 
+            onClick={() => { setProfile(null); setCode(''); }} 
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px',
+              marginLeft: '20px', padding: '8px 16px', borderRadius: '12px', 
+              cursor: 'pointer', background: 'linear-gradient(135deg, #ffeaa7, #fdcb6e)', 
+              color: '#2d3436', border: 'none', fontWeight: '800', fontSize: '1.1rem',
+              boxShadow: '0 4px 0 #e1b12c', transition: 'all 0.2s ease'
+            }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'translateY(4px)'; e.currentTarget.style.boxShadow = '0 0px 0 #e1b12c'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #e1b12c'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #e1b12c'; }}
+          >
+            <UserCircle size={20} /> Zmeň hráča
+          </button>
+        </h1>
         
           <div className="scenario-selector" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <button 
-              className={`scenario-btn ${currentScenarioIndex === 0 ? 'active' : ''}`}
               onClick={() => setCurrentScenarioIndex(0)}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px', borderRadius: '12px', fontSize: '1.2rem', fontWeight: '900',
+                border: 'none', cursor: 'pointer',
+                background: currentScenarioIndex === 0 ? 'linear-gradient(135deg, #4ECDC4, #16a085)' : '#f1f2f6',
+                color: currentScenarioIndex === 0 ? 'white' : '#2d3436',
+                boxShadow: currentScenarioIndex === 0 ? '0 4px 0 #0e6655' : '0 4px 0 #dfe4ea',
+                transition: 'all 0.2s ease',
+                textTransform: 'uppercase', letterSpacing: '1px'
+              }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'translateY(4px)'; e.currentTarget.style.boxShadow = `0 0px 0 ${currentScenarioIndex === 0 ? '#0e6655' : '#dfe4ea'}`; }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 0 ${currentScenarioIndex === 0 ? '#0e6655' : '#dfe4ea'}`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 0 ${currentScenarioIndex === 0 ? '#0e6655' : '#dfe4ea'}`; }}
             >
-              Sandbox
+              <Box size={22} strokeWidth={2.5} /> Sandbox
             </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f1f2f6', padding: '5px', borderRadius: '12px' }}>
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: '8px', 
+            background: 'white', padding: '8px', borderRadius: '16px', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+            border: '2px solid #f1f2f6'
+          }}>
             <button 
               onClick={() => setCurrentScenarioIndex(prev => Math.max(1, prev - 1))}
               disabled={currentScenarioIndex <= 1}
-              style={{ background: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '5px' }}
+              style={{ 
+                background: currentScenarioIndex <= 1 ? '#f1f2f6' : '#FF6B6B', 
+                color: currentScenarioIndex <= 1 ? '#a4b0be' : 'white',
+                border: 'none', borderRadius: '10px', cursor: currentScenarioIndex <= 1 ? 'not-allowed' : 'pointer', 
+                padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+                boxShadow: currentScenarioIndex <= 1 ? 'none' : '0 4px 0 #d63031'
+              }}
+              onMouseDown={e => { if(currentScenarioIndex > 1) { e.currentTarget.style.transform = 'translateY(4px)'; e.currentTarget.style.boxShadow = '0 0px 0 #d63031'; } }}
+              onMouseUp={e => { if(currentScenarioIndex > 1) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #d63031'; } }}
+              onMouseLeave={e => { if(currentScenarioIndex > 1) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #d63031'; } }}
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={22} strokeWidth={3} />
             </button>
             
-            <select 
-              value={currentScenarioIndex} 
-              onChange={(e) => setCurrentScenarioIndex(Number(e.target.value))}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #dfe4ea', fontSize: '1rem', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}
-            >
-              {SCENARIOS.map((s, idx) => (
-                <option key={s.id} value={idx}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: 'relative' }}>
+              <select 
+                value={currentScenarioIndex} 
+                onChange={(e) => setCurrentScenarioIndex(Number(e.target.value))}
+                style={{ 
+                  appearance: 'none',
+                  padding: '10px 40px 10px 20px', 
+                  borderRadius: '10px', 
+                  border: '2px solid #dfe4ea', 
+                  fontSize: '1.1rem', 
+                  fontWeight: '800', 
+                  color: '#2d3436',
+                  background: '#f8f9fa',
+                  outline: 'none', 
+                  cursor: 'pointer',
+                  minWidth: '220px',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = '#4ECDC4'}
+                onBlur={e => e.currentTarget.style.borderColor = '#dfe4ea'}
+              >
+                {SCENARIOS.map((s, idx) => (
+                  <option key={s.id} value={idx}>
+                    {idx === 0 ? "🌍 " + s.title : "⭐ Level " + idx + ": " + s.title}
+                  </option>
+                ))}
+              </select>
+              <div style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#b2bec3' }}>
+                ▼
+              </div>
+            </div>
 
             <button 
               onClick={() => setCurrentScenarioIndex(prev => Math.min(SCENARIOS.length - 1, prev + 1))}
               disabled={currentScenarioIndex === 0 || currentScenarioIndex === SCENARIOS.length - 1}
-              style={{ background: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '5px' }}
+              style={{ 
+                background: (currentScenarioIndex === 0 || currentScenarioIndex === SCENARIOS.length - 1) ? '#f1f2f6' : '#FF6B6B', 
+                color: (currentScenarioIndex === 0 || currentScenarioIndex === SCENARIOS.length - 1) ? '#a4b0be' : 'white',
+                border: 'none', borderRadius: '10px', cursor: (currentScenarioIndex === 0 || currentScenarioIndex === SCENARIOS.length - 1) ? 'not-allowed' : 'pointer', 
+                padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+                boxShadow: (currentScenarioIndex === 0 || currentScenarioIndex === SCENARIOS.length - 1) ? 'none' : '0 4px 0 #d63031'
+              }}
+              onMouseDown={e => { if(currentScenarioIndex !== 0 && currentScenarioIndex !== SCENARIOS.length - 1) { e.currentTarget.style.transform = 'translateY(4px)'; e.currentTarget.style.boxShadow = '0 0px 0 #d63031'; } }}
+              onMouseUp={e => { if(currentScenarioIndex !== 0 && currentScenarioIndex !== SCENARIOS.length - 1) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #d63031'; } }}
+              onMouseLeave={e => { if(currentScenarioIndex !== 0 && currentScenarioIndex !== SCENARIOS.length - 1) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 0 #d63031'; } }}
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={22} strokeWidth={3} />
             </button>
           </div>
         </div>
@@ -613,6 +811,7 @@ function App() {
               value={code}
               onChange={(value) => setCode(value || '')}
               beforeMount={handleEditorWillMount}
+              onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
                 fontSize: 18,
@@ -917,6 +1116,63 @@ function App() {
                 {buttonState.text}
               </div>
 
+              <div 
+                className="magic-iofield"
+                style={{
+                  display: ioFieldState.visible !== false ? 'flex' : 'none',
+                  justifyContent: 'center',
+                  alignItems: 'stretch',
+                  width: `${ioFieldState.width}px`,
+                  height: `${ioFieldState.height}px`,
+                  transform: `translate(calc(-50% + ${ioFieldState.x || 0}px), calc(-50% + ${ioFieldState.y || 0}px))`,
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  borderRadius: '10px',
+                  border: ioFieldState.borders ? `${ioFieldState.borders}px solid #2D3436` : 'none',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                <input 
+                  type="text" 
+                  value={ioFieldState.text}
+                  onChange={(e) => {
+                    const newText = e.target.value;
+                    setIoFieldState(prev => ({ ...prev, text: newText }));
+                    currentIoFieldTextRef.current = newText;
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0 15px',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '1.2rem',
+                    fontWeight: 'bold',
+                    color: '#2D3436'
+                  }}
+                  placeholder="Type here..."
+                />
+                <button 
+                  onClick={() => ioFieldState.onClick && typeof ioFieldState.onClick === 'function' && ioFieldState.onClick()}
+                  style={{
+                    backgroundColor: ioFieldState.color,
+                    border: 'none',
+                    padding: '0 20px',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    cursor: ioFieldState.onClick ? 'pointer' : 'default',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseDown={e => e.currentTarget.style.opacity = '0.8'}
+                  onMouseUp={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
+                  Submit
+                </button>
+              </div>
+
               {extraButtons.map((ebtn) => (
                 <div 
                   key={ebtn.id}
@@ -955,9 +1211,17 @@ function App() {
 
                   <button 
                     className="reset-btn"
-                    onClick={handleReset} 
+                    onClick={handleResetConsole} 
+                    style={{ background: '#34495e', boxShadow: '0 4px 0 #2c3e50', fontSize: '1rem', padding: '6px 12px' }}
                   >
-                    <RotateCcw size={18} /> RESET
+                    <RotateCcw size={16} /> Reset Console
+                  </button>
+                  <button 
+                    className="reset-btn"
+                    onClick={handleReset} 
+                    style={{ fontSize: '1rem', padding: '6px 12px' }}
+                  >
+                    <RotateCcw size={16} /> Reset Code
                   </button>
                 </div>
               </div>
