@@ -48,14 +48,14 @@ const getCreeperPixelStyle = (shade, state, rowIndex) => {
 
 const FACTORY_DEFAULT_BOX = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_STATUS = { 
-  text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, _rawText: null,
+  text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, width: 0, height: 0, _rawText: null,
   setText: function(...args) { this.text = args; }
 };
 
 const renderFancyStatus = (statusObj) => {
   if (statusObj._rawText && Array.isArray(statusObj._rawText)) {
     return (
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', fontFamily: "'Fira Code', monospace" }}>
         {statusObj._rawText.map((arg, j) => {
           const isVariable = j % 2 === 1;
           let txt = typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
@@ -64,7 +64,7 @@ const renderFancyStatus = (statusObj) => {
           if (typeof arg === 'number') color = '#a29bfe';
           if (typeof arg === 'boolean') color = '#fd79a8';
           return (
-            <span key={j} style={{ color, backgroundColor: bg, padding: isVariable ? '2px 6px' : '0', borderRadius: '4px', fontWeight: isVariable ? 'bold' : 'normal', fontFamily: isVariable ? 'monospace' : 'inherit' }}>
+            <span key={j} style={{ color, backgroundColor: bg, padding: isVariable ? '2px 6px' : '0', borderRadius: '4px', fontWeight: isVariable ? 'bold' : 'normal', fontFamily: "'Fira Code', monospace" }}>
               {txt}
             </span>
           );
@@ -72,7 +72,7 @@ const renderFancyStatus = (statusObj) => {
       </div>
     );
   }
-  return statusObj.text;
+  return <span style={{ fontFamily: "'Fira Code', monospace" }}>{statusObj.text}</span>;
 };
 const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
 const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
@@ -286,10 +286,10 @@ function App() {
         onClick: Function;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
-      declare var status: { text: string; color: string; borders: number; visible: boolean; x: number; y: number; setText(...args: any[]): void; };
+      declare var status: { text: string; color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; setText(...args: any[]): void; };
       declare class Status {
         constructor();
-        text: string; color: string; borders: number; visible: boolean; x: number; y: number;
+        text: string; color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number;
         setText(...args: any[]): void;
       }
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
@@ -906,7 +906,9 @@ function App() {
               <div 
                 className="status-banner"
                 style={{
-                  display: statusState.visible !== false ? 'block' : 'none',
+                  display: statusState.visible !== false ? 'flex' : 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
@@ -919,7 +921,9 @@ function App() {
                   fontSize: '1.2rem',
                   color: '#2D3436',
                   zIndex: 5,
-                  minWidth: statusState.text ? '100px' : '0',
+                  minWidth: statusState.width ? `${statusState.width}px` : (statusState.text ? '100px' : '0'),
+                  width: statusState.width ? `${statusState.width}px` : 'auto',
+                  height: statusState.height ? `${statusState.height}px` : 'auto',
                   textAlign: 'center',
                   boxShadow: statusState.text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                 }}
@@ -932,7 +936,9 @@ function App() {
                   key={estatus.id}
                   className="status-banner"
                   style={{
-                    display: estatus.visible !== false ? 'block' : 'none',
+                    display: estatus.visible !== false ? 'flex' : 'none',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
@@ -945,7 +951,9 @@ function App() {
                     fontSize: '1.2rem',
                     color: '#2D3436',
                     zIndex: 5,
-                    minWidth: estatus.text ? '100px' : '0',
+                    minWidth: estatus.width ? `${estatus.width}px` : (estatus.text ? '100px' : '0'),
+                    width: estatus.width ? `${estatus.width}px` : 'auto',
+                    height: estatus.height ? `${estatus.height}px` : 'auto',
                     textAlign: 'center',
                     boxShadow: estatus.text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                   }}
