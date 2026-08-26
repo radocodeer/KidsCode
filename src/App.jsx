@@ -55,7 +55,7 @@ const FACTORY_DEFAULT_STATUS = {
 const renderFancyStatus = (statusObj) => {
   if (statusObj._rawText && Array.isArray(statusObj._rawText)) {
     return (
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', fontFamily: "'Fira Code', monospace" }}>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
         {statusObj._rawText.map((arg, j) => {
           const isVariable = j % 2 === 1;
           let txt = typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
@@ -64,7 +64,7 @@ const renderFancyStatus = (statusObj) => {
           if (typeof arg === 'number') color = '#a29bfe';
           if (typeof arg === 'boolean') color = '#fd79a8';
           return (
-            <span key={j} style={{ color, backgroundColor: bg, padding: isVariable ? '2px 6px' : '0', borderRadius: '4px', fontWeight: isVariable ? 'bold' : 'normal', fontFamily: "'Fira Code', monospace" }}>
+            <span key={j} style={{ color, backgroundColor: bg, padding: isVariable ? '2px 6px' : '0', borderRadius: '4px' }}>
               {txt}
             </span>
           );
@@ -72,7 +72,7 @@ const renderFancyStatus = (statusObj) => {
       </div>
     );
   }
-  return <span style={{ fontFamily: "'Fira Code', monospace" }}>{statusObj.text}</span>;
+  return statusObj.text;
 };
 const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
 const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
