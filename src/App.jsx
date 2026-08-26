@@ -90,6 +90,7 @@ function App() {
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [fancyLogs, setFancyLogs] = useState([]);
   const intervalsRef = useRef([]);
   
   const [saveName, setSaveName] = useState('');
@@ -191,12 +192,14 @@ function App() {
     setError(null);
     setShowConfetti(false);
     setLogs([]);
+    setFancyLogs([]);
     intervalsRef.current.forEach(clearInterval);
     intervalsRef.current = [];
   };
 
   const handleResetConsole = () => {
     setLogs([]);
+    setFancyLogs([]);
   };
 
   const handleEditorWillMount = (monaco) => {
@@ -346,6 +349,7 @@ function App() {
     setError(null);
     setShowConfetti(false);
     setLogs([]);
+    setFancyLogs([]);
     
     try {
       const currentExtraBoxes = [];
@@ -534,6 +538,7 @@ function App() {
             }
             return newLogs;
           });
+          setFancyLogs(prev => [...prev, args]);
           console.log("KIDS CODE:", ...args);
         }
       };
@@ -1226,8 +1231,34 @@ function App() {
                 </div>
               </div>
               <div className="console-logs">
-                {logs.length === 0 && <span style={{color: '#aaa', fontStyle: 'italic'}}>Waiting for logs...</span>}
-                {logs.map((log, i) => <div key={i} className="log-line">👉 {log}</div>)}
+                {fancyLogs.length === 0 && <span style={{color: '#aaa', fontStyle: 'italic'}}>Waiting for logs...</span>}
+                {fancyLogs.map((logArgs, i) => (
+                  <div key={i} className="log-line" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ marginRight: '4px' }}>👉</span>
+                    {logArgs.map((arg, j) => {
+                      const isVariable = j % 2 === 1;
+                      let text = typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+                      let color = isVariable ? '#FFD93D' : '#2bcbba';
+                      if (typeof arg === 'number') color = '#a29bfe';
+                      if (typeof arg === 'boolean') color = '#fd79a8';
+                      return (
+                        <span 
+                          key={j} 
+                          style={{ 
+                            color: color,
+                            backgroundColor: isVariable ? 'rgba(255, 217, 61, 0.1)' : 'transparent',
+                            padding: isVariable ? '2px 8px' : '0',
+                            borderRadius: '6px',
+                            fontWeight: isVariable ? 'bold' : 'normal',
+                            fontFamily: isVariable ? 'monospace' : 'inherit'
+                          }}
+                        >
+                          {text}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
