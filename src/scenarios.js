@@ -30,7 +30,7 @@ export const SCENARIOS = [
     description: 'Zmeň text statusu na "Hello!" (Ahoj!)',
     initialCode: "",
     environment: { isRaining: false, isSunny: true },
-    checkWin: (box, env, logs, status) => status && status.text === 'Hello!'
+    checkWin: (box, env, logs, status) => status && status._text === 'Hello!'
   },
   {
     id: 4,

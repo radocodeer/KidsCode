@@ -48,8 +48,8 @@ const getCreeperPixelStyle = (shade, state, rowIndex) => {
 
 const FACTORY_DEFAULT_BOX = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_STATUS = { 
-  text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, width: 0, height: 0, _rawText: null,
-  setText: function(...args) { this.text = args; }
+  _text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, width: 0, height: 0, _rawText: null,
+  Text: function(...args) { this._text = args; }
 };
 
 const renderFancyStatus = (statusObj) => {
@@ -72,7 +72,7 @@ const renderFancyStatus = (statusObj) => {
       </div>
     );
   }
-  return statusObj.text;
+  return statusObj._text;
 };
 const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
 const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
@@ -286,11 +286,11 @@ function App() {
         onClick: Function;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
-      declare var status: { text: string; color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; setText(...args: any[]): void; };
+      declare var status: { color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; Text(...args: any[]): void; };
       declare class Status {
         constructor();
-        text: string; color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number;
-        setText(...args: any[]): void;
+        color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number;
+        Text(...args: any[]): void;
       }
       declare var isSunny: boolean; declare var isRaining: boolean; declare var isNight: boolean;
       declare function setInterval(callback: Function, ms: number): number;
@@ -432,12 +432,12 @@ function App() {
           const statusProxy = new Proxy(initialStatus, {
             set: (target, prop, value) => {
               if (!(prop in defaultStatus) && prop !== 'id' && prop !== '_rawText') throw new Error(`Oops! Status does not have a property named '${String(prop)}'`);
-              if (prop === 'text' && Array.isArray(value)) {
+              if (prop === '_text' && Array.isArray(value)) {
                 target['_rawText'] = value;
-                target['text'] = value.join('');
-              } else if (prop === 'text') {
+                target['_text'] = value.join('');
+              } else if (prop === '_text') {
                 target['_rawText'] = null;
-                target['text'] = value;
+                target['_text'] = value;
               } else {
                 target[prop] = value;
               }
@@ -508,12 +508,12 @@ function App() {
       const userStatus = new Proxy({ ...defaultStatus, ...statusState }, {
         set: (target, prop, value) => {
           if (!(prop in defaultStatus) && prop !== '_rawText') throw new Error(`Oops! 'status' does not have a property named '${String(prop)}'`);
-          if (prop === 'text' && Array.isArray(value)) {
+          if (prop === '_text' && Array.isArray(value)) {
             target['_rawText'] = value;
-            target['text'] = value.join('');
-          } else if (prop === 'text') {
+            target['_text'] = value.join('');
+          } else if (prop === '_text') {
             target['_rawText'] = null;
-            target['text'] = value;
+            target['_text'] = value;
           } else {
             target[prop] = value;
           }
@@ -915,17 +915,17 @@ function App() {
                   transform: `translate(calc(-50% + ${statusState.x || 0}px), calc(-50% + ${statusState.y || 0}px))`,
                   backgroundColor: statusState.color,
                   border: statusState.borders ? `${statusState.borders}px solid #2D3436` : 'none',
-                  padding: statusState.text ? '10px 20px' : '0',
+                  padding: statusState._text ? '10px 20px' : '0',
                   borderRadius: '12px',
                   fontWeight: 'bold',
                   fontSize: '1.2rem',
                   color: '#2D3436',
                   zIndex: 5,
-                  minWidth: statusState.width ? `${statusState.width}px` : (statusState.text ? '100px' : '0'),
+                  minWidth: statusState.width ? `${statusState.width}px` : (statusState._text ? '100px' : '0'),
                   width: statusState.width ? `${statusState.width}px` : 'auto',
                   height: statusState.height ? `${statusState.height}px` : 'auto',
                   textAlign: 'center',
-                  boxShadow: statusState.text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                  boxShadow: statusState._text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                 }}
               >
                 {renderFancyStatus(statusState)}
@@ -945,17 +945,17 @@ function App() {
                     transform: `translate(calc(-50% + ${estatus.x || 0}px), calc(-50% + ${estatus.y || 0}px))`,
                     backgroundColor: estatus.color,
                     border: estatus.borders ? `${estatus.borders}px solid #2D3436` : 'none',
-                    padding: estatus.text ? '10px 20px' : '0',
+                    padding: estatus._text ? '10px 20px' : '0',
                     borderRadius: '12px',
                     fontWeight: 'bold',
                     fontSize: '1.2rem',
                     color: '#2D3436',
                     zIndex: 5,
-                    minWidth: estatus.width ? `${estatus.width}px` : (estatus.text ? '100px' : '0'),
+                    minWidth: estatus.width ? `${estatus.width}px` : (estatus._text ? '100px' : '0'),
                     width: estatus.width ? `${estatus.width}px` : 'auto',
                     height: estatus.height ? `${estatus.height}px` : 'auto',
                     textAlign: 'center',
-                    boxShadow: estatus.text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: estatus._text ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                   }}
                 >
                   {renderFancyStatus(estatus)}
