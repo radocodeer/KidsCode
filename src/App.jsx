@@ -78,6 +78,7 @@ const FACTORY_DEFAULT_WALL = { color: '#E8F8F5', borders: 0, visible: true };
 const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120, height: 40, x: -400, y: 350, borders: 0, visible: true, onClick: null };
 const FACTORY_DEFAULT_CREEPER = { color: '#27ae60', width: 100, height: 200, x: -250, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_IOFIELD = { text: '', color: '#4ECDC4', width: 250, height: 40, x: 0, y: 150, borders: 0, visible: true, onClick: null };
+const FACTORY_DEFAULT_SCROLLBAR = { color: '#4ECDC4', width: 200, height: 40, x: 0, y: 250, borders: 0, visible: true, value: 50, min: 0, max: 100, onMove: null, horizontal: true };
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -92,7 +93,8 @@ function App() {
     wall: { ...FACTORY_DEFAULT_WALL },
     button: { ...FACTORY_DEFAULT_BUTTON },
     creeper: { ...FACTORY_DEFAULT_CREEPER },
-    ioField: { ...FACTORY_DEFAULT_IOFIELD }
+    ioField: { ...FACTORY_DEFAULT_IOFIELD },
+    scrollBar: { ...FACTORY_DEFAULT_SCROLLBAR }
   });
   
   const defaultBox = defaults.box;
@@ -101,6 +103,7 @@ function App() {
   const defaultButton = defaults.button;
   const defaultCreeper = defaults.creeper;
   const defaultIoField = defaults.ioField;
+  const defaultScrollBar = defaults.scrollBar;
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
@@ -109,10 +112,13 @@ function App() {
   const [creeperState, setCreeperState] = useState(defaultCreeper);
   const [ioFieldState, setIoFieldState] = useState(defaultIoField);
   const currentIoFieldTextRef = useRef('');
+  const [scrollBarState, setScrollBarState] = useState(defaultScrollBar);
+  const currentScrollBarValueRef = useRef(defaultScrollBar.value);
   const [extraBoxes, setExtraBoxes] = useState([]);
   const [extraButtons, setExtraButtons] = useState([]);
   const [extraStatuses, setExtraStatuses] = useState([]);
   const [extraCreepers, setExtraCreepers] = useState([]);
+  const [extraScrollBars, setExtraScrollBars] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -131,17 +137,18 @@ function App() {
     const button = { ...FACTORY_DEFAULT_BUTTON };
     const creeper = { ...FACTORY_DEFAULT_CREEPER };
     const ioField = { ...FACTORY_DEFAULT_IOFIELD };
+    const scrollBar = { ...FACTORY_DEFAULT_SCROLLBAR };
     
     if (files && files['FirstScan'] && files['FirstScan'].trim() !== '') {
         try {
-            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', 'ioField', files['FirstScan']);
-            initFn(box, status, wall, button, creeper, ioField);
+            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', 'ioField', 'scrollBar', files['FirstScan']);
+            initFn(box, status, wall, button, creeper, ioField, scrollBar);
         } catch (e) {
             console.error("FirstScan Error:", e);
         }
     }
     
-    setDefaults({ box, status, wall, button, creeper, ioField });
+    setDefaults({ box, status, wall, button, creeper, ioField, scrollBar });
     setBoxState({ ...box });
     setStatusState({ ...status });
     setWallState({ ...wall });
@@ -149,10 +156,13 @@ function App() {
     setCreeperState({ ...creeper });
     setIoFieldState({ ...ioField });
     currentIoFieldTextRef.current = ioField.text;
+    setScrollBarState({ ...scrollBar });
+    currentScrollBarValueRef.current = scrollBar.value;
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
     setExtraCreepers([]);
+    setExtraScrollBars([]);
   };
 
   useEffect(() => {
@@ -211,10 +221,13 @@ function App() {
     setCreeperState({ ...defaultCreeper });
     setIoFieldState({ ...defaultIoField });
     currentIoFieldTextRef.current = defaultIoField.text;
+    setScrollBarState({ ...defaultScrollBar });
+    currentScrollBarValueRef.current = defaultScrollBar.value;
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
     setExtraCreepers([]);
+    setExtraScrollBars([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -284,6 +297,11 @@ function App() {
         text: string; color: string; width: number; height: number;
         x: number; y: number; borders: number; visible: boolean;
         onClick: Function;
+      }
+      declare var scrollBar: { color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; value: number; min: number; max: number; onMove: Function; horizontal: boolean; };
+      declare class ScrollBar {
+        constructor();
+        color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; value: number; min: number; max: number; onMove: Function; horizontal: boolean;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; text(...args: any[]): void; };
@@ -498,6 +516,27 @@ function App() {
         }
       }
 
+      const currentExtraScrollBars = [];
+      class ScrollBar {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialSb = { ...defaultScrollBar, id, visible: true };
+          
+          const sbProxy = new Proxy(initialSb, {
+            get: (target, prop) => target[prop],
+            set: (target, prop, value) => {
+              if (!(prop in defaultScrollBar) && prop !== 'id') throw new Error(`Oops! ScrollBar does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraScrollBars([...currentExtraScrollBars]);
+              return true;
+            }
+          });
+          currentExtraScrollBars.push(sbProxy);
+          setExtraScrollBars([...currentExtraScrollBars]);
+          return sbProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -579,6 +618,20 @@ function App() {
         }
       });
       
+      const userScrollBar = new Proxy({ ...defaultScrollBar, ...scrollBarState }, {
+        get: (target, prop) => {
+          if (prop === 'value') return currentScrollBarValueRef.current;
+          return target[prop];
+        },
+        set: (target, prop, value) => {
+          if (!(prop in defaultScrollBar)) throw new Error(`Oops! 'scrollBar' does not have a property named '${String(prop)}'`);
+          if (prop === 'value') currentScrollBarValueRef.current = value;
+          target[prop] = value;
+          setScrollBarState({ ...target });
+          return true;
+        }
+      });
+      
       const fakeConsole = {
         log: (...args) => {
           const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
@@ -601,6 +654,7 @@ function App() {
         Button,
         Status,
         IoField,
+        ScrollBar,
         setInterval: (cb, ms) => {
           const id = setInterval(() => {
             try { cb(); } catch (e) { 
@@ -627,7 +681,7 @@ function App() {
       // We create a safe execution context using 'with' to allow variable shadowing
       // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
       const libraryCode = (savedFiles['Library'] && saveName !== 'Library') ? savedFiles['Library'] : '';
-      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'ioField', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', 'IoField', `
+      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'ioField', 'scrollBar', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', 'IoField', 'ScrollBar', `
         with (env) {
           ${libraryCode}
           ${code}
@@ -635,7 +689,7 @@ function App() {
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userCreeper, userStatus, userWall, userButton, userIoField, fakeConsole, env, Box, Button, Status, Creeper, IoField);
+      executeCode(userBox, userCreeper, userStatus, userWall, userButton, userIoField, userScrollBar, fakeConsole, env, Box, Button, Status, Creeper, IoField, ScrollBar);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -1236,6 +1290,86 @@ function App() {
                   Submit
                 </button>
               </div>
+
+              <div 
+                className="magic-scrollbar"
+                style={{
+                  display: scrollBarState.visible !== false ? 'flex' : 'none',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: `${scrollBarState.width}px`,
+                  height: `${scrollBarState.height}px`,
+                  transform: `translate(calc(-50% + ${scrollBarState.x || 0}px), calc(-50% + ${scrollBarState.y || 0}px))`,
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  backgroundColor: scrollBarState.color,
+                  borderRadius: '10px',
+                  border: scrollBarState.borders ? `${scrollBarState.borders}px solid #2D3436` : 'none',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                <input 
+                  type="range" 
+                  min={scrollBarState.min} 
+                  max={scrollBarState.max} 
+                  value={scrollBarState.value}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setScrollBarState(prev => ({ ...prev, value: val }));
+                    currentScrollBarValueRef.current = val;
+                    if (scrollBarState.onMove && typeof scrollBarState.onMove === 'function') {
+                      scrollBarState.onMove(val);
+                    }
+                  }}
+                  style={{ 
+                    width: scrollBarState.horizontal === false ? `${scrollBarState.height * 0.8}px` : '90%', 
+                    transform: scrollBarState.horizontal === false ? 'rotate(-90deg)' : 'none',
+                    cursor: 'pointer' 
+                  }}
+                />
+              </div>
+
+              {extraScrollBars.map((esb) => (
+                <div 
+                  key={esb.id}
+                  className="magic-scrollbar"
+                  style={{
+                    display: esb.visible !== false ? 'flex' : 'none',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: `${esb.width}px`,
+                    height: `${esb.height}px`,
+                    transform: `translate(calc(-50% + ${esb.x || 0}px), calc(-50% + ${esb.y || 0}px))`,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    backgroundColor: esb.color,
+                    borderRadius: '10px',
+                    border: esb.borders ? `${esb.borders}px solid #2D3436` : 'none',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <input 
+                    type="range" 
+                    min={esb.min} 
+                    max={esb.max} 
+                    value={esb.value}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      esb.value = val;
+                      if (esb.onMove && typeof esb.onMove === 'function') {
+                        esb.onMove(val);
+                      }
+                    }}
+                    style={{ 
+                      width: esb.horizontal === false ? `${esb.height * 0.8}px` : '90%', 
+                      transform: esb.horizontal === false ? 'rotate(-90deg)' : 'none',
+                      cursor: 'pointer' 
+                    }}
+                  />
+                </div>
+              ))}
 
               {extraButtons.map((ebtn) => (
                 <div 
