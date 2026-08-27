@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save, UserCircle, Box } from 'lucide-react';
+import { Play, Sparkles, RotateCcw, ChevronLeft, ChevronRight, Save, UserCircle, Box, Volume2 } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import './index.css';
 import { SCENARIOS } from './scenarios.js';
@@ -46,6 +46,194 @@ const getCreeperPixelStyle = (shade, state, rowIndex) => {
   };
 };
 
+const playSound = (type) => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = new AudioContext();
+    const gainNode = audioCtx.createGain();
+    gainNode.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'boom' || type === 'explosion') {
+      const bufferSize = audioCtx.sampleRate * 0.5;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'lowpass';
+      noiseFilter.frequency.value = 1000;
+      noise.connect(noiseFilter);
+      noiseFilter.connect(gainNode);
+      gainNode.gain.setValueAtTime(1, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      noise.start(now);
+      noise.stop(now + 0.5);
+      return;
+    }
+
+    const oscillator = audioCtx.createOscillator();
+    oscillator.connect(gainNode);
+    
+    if (type === 'beep') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, now);
+      gainNode.gain.setValueAtTime(1, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      oscillator.start(now);
+      oscillator.stop(now + 0.2);
+    } else if (type === 'boing') {
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(200, now);
+      oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+      gainNode.gain.setValueAtTime(0.5, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    } else {
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(400, now);
+      gainNode.gain.setValueAtTime(1, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      oscillator.start(now);
+      oscillator.stop(now + 0.1);
+    }
+  } catch (e) {
+    console.error("Audio error", e);
+  }
+};
+
+const AnalogJoystick = ({ color, onMove, minX = -100, maxX = 100, minY = -100, maxY = 100 }) => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [active, setActive] = useState(false);
+  const baseRef = useRef(null);
+  const onMoveRef = useRef(onMove);
+  
+  useEffect(() => {
+    onMoveRef.current = onMove;
+  }, [onMove]);
+  
+  const mapRange = (val, inMin, inMax, outMin, outMax) => ((val - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+
+  const handleMove = (clientX, clientY, currentActive) => {
+    if (!currentActive || !baseRef.current) return;
+    const rect = baseRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    let dx = clientX - centerX;
+    let dy = clientY - centerY;
+    
+    const radius = rect.width / 2;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > radius) {
+      dx = (dx / distance) * radius;
+      dy = (dy / distance) * radius;
+    }
+    
+    setPosition({ x: dx, y: dy });
+    
+    if (onMoveRef.current && typeof onMoveRef.current === 'function') {
+      const normX = Math.round(mapRange(dx / radius, -1, 1, minX, maxX));
+      const normY = Math.round(mapRange(dy / radius, -1, 1, minY, maxY));
+      onMoveRef.current(normX, normY);
+    }
+  };
+
+  const handleStart = (clientX, clientY) => {
+    setActive(true);
+    if (baseRef.current) {
+      const rect = baseRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      let dx = clientX - centerX;
+      let dy = clientY - centerY;
+      const radius = rect.width / 2;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > radius) {
+        dx = (dx / distance) * radius;
+        dy = (dy / distance) * radius;
+      }
+      setPosition({ x: dx, y: dy });
+      if (onMoveRef.current && typeof onMoveRef.current === 'function') {
+        onMoveRef.current(
+          Math.round(mapRange(dx / radius, -1, 1, minX, maxX)),
+          Math.round(mapRange(dy / radius, -1, 1, minY, maxY))
+        );
+      }
+    }
+  };
+
+  const handleEnd = () => {
+    setActive(false);
+    setPosition({ x: 0, y: 0 });
+    if (onMoveRef.current && typeof onMoveRef.current === 'function') {
+      onMoveRef.current(
+        Math.round((minX + maxX) / 2),
+        Math.round((minY + maxY) / 2)
+      );
+    }
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e) => handleMove(e.clientX, e.clientY, active);
+    const onTouchMove = (e) => handleMove(e.touches[0].clientX, e.touches[0].clientY, active);
+    const onEnd = () => handleEnd();
+
+    if (active) {
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('touchend', onEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [active, minX, maxX, minY, maxY]);
+
+  return (
+    <div 
+      ref={baseRef}
+      onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
+      onTouchStart={(e) => { e.preventDefault(); handleStart(e.touches[0].clientX, e.touches[0].clientY); }}
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        border: '3px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '50%',
+        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        boxShadow: 'inset 0 6px 12px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        touchAction: 'none'
+      }}
+    >
+      <div style={{
+        width: '45%',
+        height: '45%',
+        background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6) 0%, ${color} 40%, rgba(0,0,0,0.3) 100%), ${color}`,
+        borderRadius: '50%',
+        position: 'absolute',
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        boxShadow: active ? '0 10px 15px rgba(0,0,0,0.3), inset 0 -4px 8px rgba(0,0,0,0.2)' : '0 15px 25px rgba(0,0,0,0.4), inset 0 -4px 8px rgba(0,0,0,0.2)',
+        transition: active ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s',
+        cursor: active ? 'grabbing' : 'grab'
+      }} />
+    </div>
+  );
+};
+
 const FACTORY_DEFAULT_BOX = { color: '#4ECDC4', width: 150, height: 150, x: 0, y: 0, eyes: true, mouth: false, nose: false, angle: 0, borders: 0, hands: false, legs: false, hair: false, ears: false, glasses: false, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_STATUS = { 
   _text: 'status', color: 'transparent', borders: 0, visible: true, x: 0, y: -350, width: 0, height: 0, _rawText: null,
@@ -79,6 +267,8 @@ const FACTORY_DEFAULT_BUTTON = { text: 'Click me!', color: '#4ECDC4', width: 120
 const FACTORY_DEFAULT_CREEPER = { color: '#27ae60', width: 100, height: 200, x: -250, y: 0, eyes: true, mouth: true, legs: true, angle: 0, borders: 0, visible: true, text: '', onClick: null };
 const FACTORY_DEFAULT_IOFIELD = { text: '', color: '#4ECDC4', width: 250, height: 40, x: 0, y: 150, borders: 0, visible: true, onClick: null };
 const FACTORY_DEFAULT_SCROLLBAR = { color: '#4ECDC4', width: 200, height: 40, x: 0, y: 250, borders: 0, visible: true, value: 50, min: 0, max: 100, onMove: null, horizontal: true };
+const FACTORY_DEFAULT_SPEAKER = { color: '#a29bfe', width: 60, height: 60, x: 300, y: -250, borders: 0, visible: true, play: null, speak: null };
+const FACTORY_DEFAULT_JOYSTICK = { color: '#ff9ff3', width: 150, height: 150, x: -300, y: 200, borders: 0, visible: true, onMove: null, minX: -100, maxX: 100, minY: -100, maxY: 100 };
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -94,7 +284,9 @@ function App() {
     button: { ...FACTORY_DEFAULT_BUTTON },
     creeper: { ...FACTORY_DEFAULT_CREEPER },
     ioField: { ...FACTORY_DEFAULT_IOFIELD },
-    scrollBar: { ...FACTORY_DEFAULT_SCROLLBAR }
+    scrollBar: { ...FACTORY_DEFAULT_SCROLLBAR },
+    speaker: { ...FACTORY_DEFAULT_SPEAKER },
+    joystick: { ...FACTORY_DEFAULT_JOYSTICK }
   });
   
   const defaultBox = defaults.box;
@@ -104,6 +296,8 @@ function App() {
   const defaultCreeper = defaults.creeper;
   const defaultIoField = defaults.ioField;
   const defaultScrollBar = defaults.scrollBar;
+  const defaultSpeaker = defaults.speaker;
+  const defaultJoystick = defaults.joystick;
   
   const [boxState, setBoxState] = useState(defaultBox);
   const [statusState, setStatusState] = useState(defaultStatus);
@@ -114,11 +308,15 @@ function App() {
   const currentIoFieldTextRef = useRef('');
   const [scrollBarState, setScrollBarState] = useState(defaultScrollBar);
   const currentScrollBarValueRef = useRef(defaultScrollBar.value);
+  const [speakerState, setSpeakerState] = useState(defaultSpeaker);
+  const [joystickState, setJoystickState] = useState(defaultJoystick);
   const [extraBoxes, setExtraBoxes] = useState([]);
   const [extraButtons, setExtraButtons] = useState([]);
   const [extraStatuses, setExtraStatuses] = useState([]);
   const [extraCreepers, setExtraCreepers] = useState([]);
   const [extraScrollBars, setExtraScrollBars] = useState([]);
+  const [extraSpeakers, setExtraSpeakers] = useState([]);
+  const [extraJoysticks, setExtraJoysticks] = useState([]);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -138,17 +336,19 @@ function App() {
     const creeper = { ...FACTORY_DEFAULT_CREEPER };
     const ioField = { ...FACTORY_DEFAULT_IOFIELD };
     const scrollBar = { ...FACTORY_DEFAULT_SCROLLBAR };
+    const speaker = { ...FACTORY_DEFAULT_SPEAKER };
+    const joystick = { ...FACTORY_DEFAULT_JOYSTICK };
     
     if (files && files['FirstScan'] && files['FirstScan'].trim() !== '') {
         try {
-            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', 'ioField', 'scrollBar', files['FirstScan']);
-            initFn(box, status, wall, button, creeper, ioField, scrollBar);
+            const initFn = new Function('box', 'status', 'wall', 'button', 'creeper', 'ioField', 'scrollBar', 'speaker', 'joystick', files['FirstScan']);
+            initFn(box, status, wall, button, creeper, ioField, scrollBar, speaker, joystick);
         } catch (e) {
             console.error("FirstScan Error:", e);
         }
     }
     
-    setDefaults({ box, status, wall, button, creeper, ioField, scrollBar });
+    setDefaults({ box, status, wall, button, creeper, ioField, scrollBar, speaker, joystick });
     setBoxState({ ...box });
     setStatusState({ ...status });
     setWallState({ ...wall });
@@ -158,11 +358,15 @@ function App() {
     currentIoFieldTextRef.current = ioField.text;
     setScrollBarState({ ...scrollBar });
     currentScrollBarValueRef.current = scrollBar.value;
+    setSpeakerState({ ...speaker });
+    setJoystickState({ ...joystick });
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
     setExtraCreepers([]);
     setExtraScrollBars([]);
+    setExtraSpeakers([]);
+    setExtraJoysticks([]);
   };
 
   useEffect(() => {
@@ -223,11 +427,15 @@ function App() {
     currentIoFieldTextRef.current = defaultIoField.text;
     setScrollBarState({ ...defaultScrollBar });
     currentScrollBarValueRef.current = defaultScrollBar.value;
+    setSpeakerState({ ...defaultSpeaker });
+    setJoystickState({ ...defaultJoystick });
     setExtraBoxes([]);
     setExtraButtons([]);
     setExtraStatuses([]);
     setExtraCreepers([]);
     setExtraScrollBars([]);
+    setExtraSpeakers([]);
+    setExtraJoysticks([]);
     setError(null);
     setShowConfetti(false);
     setLogs([]);
@@ -302,6 +510,16 @@ function App() {
       declare class ScrollBar {
         constructor();
         color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; value: number; min: number; max: number; onMove: Function; horizontal: boolean;
+      }
+      declare var speaker: { color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; play(sound: string): void; speak(text: string): void; };
+      declare class Speaker {
+        constructor();
+        color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; play(sound: string): void; speak(text: string): void;
+      }
+      declare var joystick: { color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onMove: Function; minX: number; maxX: number; minY: number; maxY: number; };
+      declare class Joystick {
+        constructor();
+        color: string; width: number; height: number; x: number; y: number; borders: number; visible: boolean; onMove: Function; minX: number; maxX: number; minY: number; maxY: number;
       }
       declare var wall: { color: string; borders: number; visible: boolean; };
       declare var status: { color: string; borders: number; visible: boolean; x: number; y: number; width: number; height: number; text(...args: any[]): void; };
@@ -537,6 +755,52 @@ function App() {
         }
       }
 
+      const currentExtraSpeakers = [];
+      class Speaker {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialSpk = { ...defaultSpeaker, id, visible: true };
+          
+          const spkProxy = new Proxy(initialSpk, {
+            get: (target, prop) => {
+              if (prop === 'play') return (type) => playSound(type);
+              if (prop === 'speak') return (text) => window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+              return target[prop];
+            },
+            set: (target, prop, value) => {
+              if (!(prop in defaultSpeaker) && prop !== 'id') throw new Error(`Oops! Speaker does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraSpeakers([...currentExtraSpeakers]);
+              return true;
+            }
+          });
+          currentExtraSpeakers.push(spkProxy);
+          setExtraSpeakers([...currentExtraSpeakers]);
+          return spkProxy;
+        }
+      }
+
+      const currentExtraJoysticks = [];
+      class Joystick {
+        constructor() {
+          const id = Date.now() + Math.random();
+          const initialJoy = { ...defaultJoystick, id, visible: true };
+          
+          const joyProxy = new Proxy(initialJoy, {
+            get: (target, prop) => target[prop],
+            set: (target, prop, value) => {
+              if (!(prop in defaultJoystick) && prop !== 'id') throw new Error(`Oops! Joystick does not have a property named '${String(prop)}'`);
+              target[prop] = value;
+              setExtraJoysticks([...currentExtraJoysticks]);
+              return true;
+            }
+          });
+          currentExtraJoysticks.push(joyProxy);
+          setExtraJoysticks([...currentExtraJoysticks]);
+          return joyProxy;
+        }
+      }
+
       // Create proxies so async changes trigger re-renders
       const userBox = new Proxy({ ...defaultBox, ...boxState }, {
         set: (target, prop, value) => {
@@ -632,6 +896,30 @@ function App() {
         }
       });
       
+      const userSpeaker = new Proxy({ ...defaultSpeaker, ...speakerState }, {
+        get: (target, prop) => {
+          if (prop === 'play') return (type) => playSound(type);
+          if (prop === 'speak') return (text) => window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+          return target[prop];
+        },
+        set: (target, prop, value) => {
+          if (!(prop in defaultSpeaker)) throw new Error(`Oops! 'speaker' does not have a property named '${String(prop)}'`);
+          target[prop] = value;
+          setSpeakerState({ ...target });
+          return true;
+        }
+      });
+      
+      const userJoystick = new Proxy({ ...defaultJoystick, ...joystickState }, {
+        get: (target, prop) => target[prop],
+        set: (target, prop, value) => {
+          if (!(prop in defaultJoystick)) throw new Error(`Oops! 'joystick' does not have a property named '${String(prop)}'`);
+          target[prop] = value;
+          setJoystickState({ ...target });
+          return true;
+        }
+      });
+      
       const fakeConsole = {
         log: (...args) => {
           const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
@@ -655,6 +943,8 @@ function App() {
         Status,
         IoField,
         ScrollBar,
+        Speaker,
+        Joystick,
         setInterval: (cb, ms) => {
           const id = setInterval(() => {
             try { cb(); } catch (e) { 
@@ -681,7 +971,7 @@ function App() {
       // We create a safe execution context using 'with' to allow variable shadowing
       // The function expects parameters: box, status, wall, button, console, env, Box, Button, Status
       const libraryCode = (savedFiles['Library'] && saveName !== 'Library') ? savedFiles['Library'] : '';
-      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'ioField', 'scrollBar', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', 'IoField', 'ScrollBar', `
+      const executeCode = new Function('box', 'creeper', 'status', 'wall', 'button', 'ioField', 'scrollBar', 'speaker', 'joystick', 'console', 'env', 'Box', 'Button', 'Status', 'Creeper', 'IoField', 'ScrollBar', 'Speaker', 'Joystick', `
         with (env) {
           ${libraryCode}
           ${code}
@@ -689,7 +979,7 @@ function App() {
       `);
       
       // Run the code, passing the environment with our fake timers
-      executeCode(userBox, userCreeper, userStatus, userWall, userButton, userIoField, userScrollBar, fakeConsole, env, Box, Button, Status, Creeper, IoField, ScrollBar);
+      executeCode(userBox, userCreeper, userStatus, userWall, userButton, userIoField, userScrollBar, userSpeaker, userJoystick, fakeConsole, env, Box, Button, Status, Creeper, IoField, ScrollBar, Speaker, Joystick);
       
       // Update the React state with whatever the user code changed
       setBoxState(userBox);
@@ -1329,6 +1619,98 @@ function App() {
                   }}
                 />
               </div>
+
+              <div 
+                className="magic-speaker"
+                style={{
+                  display: speakerState.visible !== false ? 'flex' : 'none',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: `${speakerState.width}px`,
+                  height: `${speakerState.height}px`,
+                  transform: `translate(calc(-50% + ${speakerState.x || 0}px), calc(-50% + ${speakerState.y || 0}px))`,
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  backgroundColor: speakerState.color,
+                  borderRadius: '15px',
+                  border: speakerState.borders ? `${speakerState.borders}px solid #2D3436` : 'none',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                <Volume2 size={speakerState.width * 0.6} color="white" />
+              </div>
+
+              {extraSpeakers.map((espk) => (
+                <div 
+                  key={espk.id}
+                  className="magic-speaker"
+                  style={{
+                    display: espk.visible !== false ? 'flex' : 'none',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: `${espk.width}px`,
+                    height: `${espk.height}px`,
+                    transform: `translate(calc(-50% + ${espk.x || 0}px), calc(-50% + ${espk.y || 0}px))`,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    backgroundColor: espk.color,
+                    borderRadius: '15px',
+                    border: espk.borders ? `${espk.borders}px solid #2D3436` : 'none',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Volume2 size={espk.width * 0.6} color="white" />
+                </div>
+              ))}
+
+              <div 
+                className="magic-joystick"
+                style={{
+                  display: joystickState.visible !== false ? 'flex' : 'none',
+                  width: `${joystickState.width}px`,
+                  height: `${joystickState.height}px`,
+                  transform: `translate(calc(-50% + ${joystickState.x || 0}px), calc(-50% + ${joystickState.y || 0}px))`,
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                }}
+              >
+                <AnalogJoystick 
+                  color={joystickState.color} 
+                  onMove={joystickState.onMove} 
+                  minX={joystickState.minX}
+                  maxX={joystickState.maxX}
+                  minY={joystickState.minY}
+                  maxY={joystickState.maxY}
+                />
+              </div>
+
+              {extraJoysticks.map((ejoy) => (
+                <div 
+                  key={ejoy.id}
+                  className="magic-joystick"
+                  style={{
+                    display: ejoy.visible !== false ? 'flex' : 'none',
+                    width: `${ejoy.width}px`,
+                    height: `${ejoy.height}px`,
+                    transform: `translate(calc(-50% + ${ejoy.x || 0}px), calc(-50% + ${ejoy.y || 0}px))`,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                  }}
+                >
+                  <AnalogJoystick 
+                    color={ejoy.color} 
+                    onMove={ejoy.onMove} 
+                    minX={ejoy.minX}
+                    maxX={ejoy.maxX}
+                    minY={ejoy.minY}
+                    maxY={ejoy.maxY}
+                  />
+                </div>
+              ))}
 
               {extraScrollBars.map((esb) => (
                 <div 
