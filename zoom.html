@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoom Animation</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #333; /* Dark background to easily see where to record */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .zoom-container {
+    /* Mobile phone aspect ratio (9:16) */
+    width: 450px;
+    height: 800px;
+    background-color: black;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Helps identify the recording area */
+  }
+  .zoom-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* cover ensures no black bars in the vertical video */
+    animation: zoomIn 2s ease-in-out forwards;
+  }
+  @keyframes zoomIn {
+    0% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(2); /* Smoothly zoom in to 2x */
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="zoom-container">
+    <img class="zoom-image" src="jesus_loves_you.jpg" alt="Zoom Target">
+  </div>
+</body>
+</html>

@@ -533,6 +533,41 @@ function App() {
       declare function setTimeout(callback: Function, ms: number): number;
       declare var console: { log(...args: any[]): void; };
     `, 'filename/facts.d.ts');
+
+    // Add a custom autocomplete provider for user-defined variables
+    // This helps kids when they forget 'let' or 'const', e.g. "players = []"
+    monaco.languages.registerCompletionItemProvider('javascript', {
+      provideCompletionItems: (model, position) => {
+        const text = model.getValue();
+        // Match any word that is followed by =, [, or .
+        const regex = /([a-zA-Z_$][0-9a-zA-Z_$]*)\s*(?:=|\[|\.)/g;
+        const matches = new Set();
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          if (match[1].length > 1) {
+            matches.add(match[1]);
+          }
+        }
+        
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
+        
+        const suggestions = Array.from(matches)
+          .map(m => ({
+            label: m,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: m,
+            range: range
+          }));
+        
+        return { suggestions: suggestions };
+      }
+    });
   };
 
   const handleEditorDidMount = (editor, monaco) => {
