@@ -568,6 +568,47 @@ function App() {
         return { suggestions: suggestions };
       }
     });
+
+    // Add a custom provider for Magic World properties when typing '.'
+    monaco.languages.registerCompletionItemProvider('javascript', {
+      triggerCharacters: ['.'],
+      provideCompletionItems: (model, position) => {
+        const textUntilPosition = model.getValueInRange({
+          startLineNumber: position.lineNumber,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column
+        });
+        
+        // Check if they are typing a property after a dot
+        const match = textUntilPosition.match(/\.\s*([a-zA-Z_$]*)$/);
+        if (!match) return { suggestions: [] };
+        
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
+        
+        const properties = [
+          'color', 'width', 'height', 'x', 'y', 'angle', 'borders', 'visible', 
+          'text', 'onClick', 'eyes', 'mouth', 'nose', 'hands', 'legs', 'hair', 
+          'ears', 'glasses', 'value', 'min', 'max', 'horizontal', 'onMove', 
+          'minX', 'maxX', 'minY', 'maxY', 'play', 'speak', 'push', 'length', 'pop', 'shift', 'unshift'
+        ];
+        
+        const suggestions = properties.map(prop => ({
+          label: prop,
+          kind: monaco.languages.CompletionItemKind.Property,
+          insertText: prop,
+          range: range
+        }));
+        
+        return { suggestions: suggestions };
+      }
+    });
   };
 
   const handleEditorDidMount = (editor, monaco) => {
